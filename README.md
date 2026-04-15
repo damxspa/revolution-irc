@@ -1,5 +1,6 @@
 Revolution IRC Next
 ==============
  
-Versión experimental mejorada del cliente Revolution IRC compatible con versiones recientes de Android<br>
-Aplicación en pruebas
+An enhanced version of Revolution IRC with improvements; although it is still in the testing phase, it works reasonably well.
+
+You can download the latest version from the "Releases" section
