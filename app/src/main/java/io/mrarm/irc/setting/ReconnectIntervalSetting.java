@@ -192,14 +192,14 @@ public class ReconnectIntervalSetting extends SimpleSetting {
                     inflater.inflate(R.menu.menu_reconnect_rule, menu.getMenu());
                     menu.setOnMenuItemClickListener((MenuItem item) -> {
                         if (item.getItemId() == R.id.action_add) {
-                            mAdapter.mRules.add(getAdapterPosition() + 1, new Rule());
-                            mAdapter.notifyItemInserted(getAdapterPosition() + 1);
+                            mAdapter.mRules.add(getBindingAdapterPosition() + 1, new Rule());
+                            mAdapter.notifyItemInserted(getBindingAdapterPosition() + 1);
                             mAdapter.updateDialogOkButtonState(false);
                             return true;
                         } else if (item.getItemId() == R.id.action_delete) {
                             if (mAdapter.mRules.size() > 1) {
-                                mAdapter.mRules.remove(getAdapterPosition());
-                                mAdapter.notifyItemRemoved(getAdapterPosition());
+                                mAdapter.mRules.remove(getBindingAdapterPosition());
+                                mAdapter.notifyItemRemoved(getBindingAdapterPosition());
                                 mAdapter.updateDialogOkButtonState(true);
                             }
                             return true;
@@ -212,7 +212,7 @@ public class ReconnectIntervalSetting extends SimpleSetting {
 
             private void updateReconnectDelay() {
                 int delay = IntervalSetting.getInterval(mReconnectDelaySpinner, mReconnectDelayText);
-                int pos = getAdapterPosition();
+                int pos = getBindingAdapterPosition();
                 if (pos == -1)
                     return;
                 Rule rule = mAdapter.mRules.get(pos);
@@ -249,20 +249,20 @@ public class ReconnectIntervalSetting extends SimpleSetting {
             };
 
             private SimpleTextWatcher mRepeatCountTextListener = new SimpleTextWatcher((Editable s) -> {
-                Rule rule = mAdapter.mRules.get(getAdapterPosition());
+                Rule rule = mAdapter.mRules.get(getBindingAdapterPosition());
                 try {
                     rule.repeatCount = Integer.parseInt(mRepeatCountText.getText().toString());
                 } catch (NumberFormatException e) {
                     rule.repeatCount = -1;
                 }
 
-                if (getAdapterPosition() == mAdapter.mRules.size() - 1) { // last item
+                if (getBindingAdapterPosition() == mAdapter.mRules.size() - 1) { // last item
                     if (mRepeatCountText.getText().length() > 0) {
                         // add a new empty item
-                        mAdapter.mRules.add(getAdapterPosition() + 1, new Rule());
-                        mAdapter.notifyItemInserted(getAdapterPosition() + 1);
+                        mAdapter.mRules.add(getBindingAdapterPosition() + 1, new Rule());
+                        mAdapter.notifyItemInserted(getBindingAdapterPosition() + 1);
                     }
-                } else if (getAdapterPosition() == mAdapter.mRules.size() - 2) {
+                } else if (getBindingAdapterPosition() == mAdapter.mRules.size() - 2) {
                     int ii = mAdapter.mRules.size() - 1;
                     Rule lastRule = mAdapter.mRules.get(ii);
                     if (lastRule.reconnectDelay == -1 && lastRule.repeatCount == -1) {

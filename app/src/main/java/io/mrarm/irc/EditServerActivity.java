@@ -16,6 +16,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import androidx.appcompat.widget.Toolbar;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
@@ -24,6 +25,9 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 
 import org.spongycastle.asn1.x500.X500Name;
 import org.spongycastle.asn1.x509.SubjectPublicKeyInfo;
@@ -67,8 +71,6 @@ public class EditServerActivity extends ThemedActivity {
     private static String TAG = "EditServerActivity";
 
     public static final String RESULT_ACTION = "io.mrarm.irc.EDIT_SERVER_RESULT_ACTION";
-
-    private static final int REQUEST_SASL_EXT_CERT = 100;
 
     public static String ARG_SERVER_UUID = "server_uuid";
     public static String ARG_COPY = "copy";
@@ -114,6 +116,15 @@ public class EditServerActivity extends ThemedActivity {
     private byte[] mServerPrivKey = null;
     private String mServerPrivKeyType;
 
+    private final ActivityResultLauncher<Intent> mSaslExtCertLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null && result.getData().getData() != null) {
+                    handleSaslExtCertResult(result.getData().getData());
+                }
+            }
+    );
+
     public static Intent getLaunchIntent(Context context, ServerConfigData data, boolean copy) {
         Intent intent = new Intent(context, EditServerActivity.class);
         Bundle args = new Bundle();
@@ -137,6 +148,8 @@ public class EditServerActivity extends ThemedActivity {
             mEditServer = ServerConfigManager.getInstance(this).findServer(UUID.fromString(uuidString));
 
         setContentView(R.layout.activity_edit_server);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         mServerName = findViewById(R.id.server_name);
@@ -221,7 +234,7 @@ public class EditServerActivity extends ThemedActivity {
             Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.setType("*/*");
-            startActivityForResult(intent, REQUEST_SASL_EXT_CERT);
+            mSaslExtCertLauncher.launch(intent);
         });
         mServerAuthSASLExtCreateButton.setOnClickListener((View v) -> {
             try {
@@ -466,9 +479,9 @@ public class EditServerActivity extends ThemedActivity {
             }
 
             InputMethodManager manager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-            manager.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+            manager.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), 0);
 
-            finish();
+            getOnBackPressedDispatcher().onBackPressed();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -476,55 +489,54 @@ public class EditServerActivity extends ThemedActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_SASL_EXT_CERT && data != null && data.getData() != null) {
-            Uri uri = data.getData();
-            X509Certificate cert = null;
-            PrivateKey privKey = null;
-            int errorResId = -1;
-            try {
-                ParcelFileDescriptor desc = getContentResolver().openFileDescriptor(uri, "r");
-                if (desc == null)
-                    throw new IOException();
-                BufferedReader reader = new BufferedReader(
-                        new FileReader(desc.getFileDescriptor()));
-                List<Object> objects = PEMParser.parse(reader);
-                for (Object o : objects) {
-                    if (o instanceof X509Certificate) {
-                        if (cert != null) {
-                            errorResId = R.string.error_cert_already_present;
-                            break;
-                        }
-                        cert = (X509Certificate) o;
-                    }
-                    if (o instanceof PrivateKey) {
-                        if (privKey != null) {
-                            errorResId = R.string.error_privkey_already_present;
-                            break;
-                        }
-                        privKey = (PrivateKey) o;
-                    }
-                }
-                if (privKey == null || cert == null)
-                    errorResId = R.string.error_cert_or_privkey_missing;
-            } catch (IOException e) {
-                errorResId = R.string.error_file_open;
-                e.printStackTrace();
-            }
-            if (errorResId == -1) {
-                mServerCert = cert;
-                mServerPrivKey = privKey.getEncoded();
-                mServerPrivKeyType = privKey.getAlgorithm();
-                mServerAuthSASLExtFP.setText(getString(R.string.server_sasl_ext_fp,
-                        getCertificateFingerprint(mServerCert)));
-            } else {
-                new AlertDialog.Builder(this)
-                        .setTitle(R.string.error_generic)
-                        .setMessage(errorResId)
-                        .show();
-            }
-            return;
-        }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private void handleSaslExtCertResult(Uri uri) {
+        X509Certificate cert = null;
+        PrivateKey privKey = null;
+        int errorResId = -1;
+        try {
+            ParcelFileDescriptor desc = getContentResolver().openFileDescriptor(uri, "r");
+            if (desc == null)
+                throw new IOException();
+            BufferedReader reader = new BufferedReader(
+                    new FileReader(desc.getFileDescriptor()));
+            List<Object> objects = PEMParser.parse(reader);
+            for (Object o : objects) {
+                if (o instanceof X509Certificate) {
+                    if (cert != null) {
+                        errorResId = R.string.error_cert_already_present;
+                        break;
+                    }
+                    cert = (X509Certificate) o;
+                }
+                if (o instanceof PrivateKey) {
+                    if (privKey != null) {
+                        errorResId = R.string.error_privkey_already_present;
+                        break;
+                    }
+                    privKey = (PrivateKey) o;
+                }
+            }
+            if (privKey == null || cert == null)
+                errorResId = R.string.error_cert_or_privkey_missing;
+        } catch (IOException e) {
+            errorResId = R.string.error_file_open;
+            e.printStackTrace();
+        }
+        if (errorResId == -1) {
+            mServerCert = cert;
+            mServerPrivKey = privKey.getEncoded();
+            mServerPrivKeyType = privKey.getAlgorithm();
+            mServerAuthSASLExtFP.setText(getString(R.string.server_sasl_ext_fp,
+                    getCertificateFingerprint(mServerCert)));
+        } else {
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.error_generic)
+                    .setMessage(errorResId)
+                    .show();
+        }
     }
 
     private static int getDefaultPort(boolean sslEnabled) {

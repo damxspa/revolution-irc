@@ -2,7 +2,9 @@ package io.mrarm.irc;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
-import android.os.AsyncTask;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.os.Build;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
@@ -110,14 +112,9 @@ public class ServerConnectionManager {
     }
 
     void saveAutoconnectListAsync() {
-        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
-            @Override
-            protected Void doInBackground(Void... voids) {
-                saveAutoconnectList();
-                return null;
-            }
-        };
-        task.execute();
+        new Thread(() -> {
+            saveAutoconnectList();
+        }).start();
     }
 
     public Context getContext() {
@@ -393,7 +390,18 @@ public class ServerConnectionManager {
     public static boolean isWifiConnected(Context context) {
         ConnectivityManager mgr = (ConnectivityManager) context.getSystemService(
                 Context.CONNECTIVITY_SERVICE);
-        return mgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI).isConnected();
+        if (mgr == null)
+            return false;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Network activeNetwork = mgr.getActiveNetwork();
+            if (activeNetwork == null)
+                return false;
+            NetworkCapabilities capabilities = mgr.getNetworkCapabilities(activeNetwork);
+            return capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
+        } else {
+            android.net.NetworkInfo networkInfo = mgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+            return networkInfo != null && networkInfo.isConnected();
+        }
     }
 
     public interface ConnectionsListener {

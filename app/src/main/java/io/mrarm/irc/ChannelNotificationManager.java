@@ -12,6 +12,7 @@ import android.os.Bundle;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.app.RemoteInput;
+import androidx.core.content.ContextCompat;
 import android.text.SpannableString;
 import android.text.style.ForegroundColorSpan;
 import android.view.View;
@@ -170,19 +171,27 @@ public class ChannelNotificationManager implements NotificationCountStorage.OnCh
         RemoteViews notificationsViewBig = createMessagesView(context, title);
         NotificationCompat.Builder notification = new NotificationCompat.Builder(context,
                 rule.settings.notificationChannelId);
+        int pendingIntentFlags = PendingIntent.FLAG_CANCEL_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+            pendingIntentFlags |= PendingIntent.FLAG_IMMUTABLE;
+
         PendingIntent intent = PendingIntent.getActivity(context, mNotificationId,
                 MainActivity.getLaunchIntent(context, mConnection, mChannel,
                         lastMessage.mMessageId.toString()),
-                PendingIntent.FLAG_CANCEL_CURRENT);
+                pendingIntentFlags);
         PendingIntent dismissIntent = PendingIntent.getBroadcast(context,
                 CHAT_DISMISS_INTENT_ID_START + mNotificationId,
                 NotificationActionReceiver.getDismissIntent(context, mConnection, mChannel),
-                PendingIntent.FLAG_CANCEL_CURRENT);
+                pendingIntentFlags);
+        int replyFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+            replyFlags |= PendingIntent.FLAG_MUTABLE;
+
         PendingIntent replyIntent = PendingIntent.getBroadcast(context,
                 CHAT_REPLY_INTENT_ID_START + mNotificationId,
                 NotificationActionReceiver.getReplyIntent(context, mConnection, mChannel,
                         mNotificationId),
-                PendingIntent.FLAG_UPDATE_CURRENT);
+                replyFlags);
         int replyIcon = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ?
                 R.drawable.ic_reply : R.drawable.ic_notification_reply;
         NotificationCompat.Action replyAction = new NotificationCompat.Action.Builder(
@@ -201,7 +210,7 @@ public class ChannelNotificationManager implements NotificationCountStorage.OnCh
                 .setCustomContentView(notificationsView)
                 .setCustomBigContentView(notificationsViewBig)
                 .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
-                .setColor(context.getResources().getColor(R.color.colorNotificationMention))
+                .setColor(ContextCompat.getColor(context, R.color.colorNotificationMention))
                 .addAction(replyAction)
                 .setDeleteIntent(dismissIntent);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {

@@ -3,7 +3,7 @@ package io.mrarm.irc.util;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.drawable.Drawable;
-import android.preference.PreferenceManager;
+import androidx.preference.PreferenceManager;
 import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.appcompat.content.res.AppCompatResources;
 import android.text.Spannable;
@@ -12,6 +12,7 @@ import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.format.DateUtils;
 import android.text.style.ForegroundColorSpan;
+import androidx.core.content.ContextCompat;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -287,14 +288,14 @@ public class MessageBuilder {
         if (mMessageTimeFixedWidth)
             ret.setSpan(new FixedWidthTimestampSpan(ds.length()), ds.length(), ret.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         if (addDefaultColorSpan)
-            ret.setSpan(new ForegroundColorSpan(mContext.getResources().getColor(R.color.messageTimestamp)), 0, ret.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            ret.setSpan(new ForegroundColorSpan(ContextCompat.getColor(mContext, R.color.messageTimestamp)), 0, ret.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         return ret;
     }
 
     public CharSequence buildDisconnectWarning(Date date) {
         ColoredTextBuilder builder = new ColoredTextBuilder();
         builder.append(createTimestamp(date, true));
-        builder.append(" Disconnected", new ForegroundColorSpan(mContext.getResources().getColor(R.color.messageDisconnected)));
+        builder.append(" Disconnected", new ForegroundColorSpan(ContextCompat.getColor(mContext, R.color.messageDisconnected)));
         return builder.getSpannable();
     }
 
@@ -437,8 +438,7 @@ public class MessageBuilder {
             text = IRCColorUtils.getFormattedString(mContext, msg);
         } else if (message.getType() == StatusMessageInfo.MessageType.MOTD) {
             SpannableString str = new SpannableString(mContext.getString(R.string.message_motd));
-            str.setSpan(new ForegroundColorSpan(mContext.getResources().getColor(
-                    R.color.motdColor)), 0, str.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            str.setSpan(new ForegroundColorSpan(ContextCompat.getColor(mContext, R.color.motdColor)), 0, str.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             text = str;
         } else if (message.getType() == StatusMessageInfo.MessageType.CTCP_PING) {
             text = mContext.getString(R.string.message_ctcp_ping);
@@ -447,8 +447,7 @@ public class MessageBuilder {
         } else if (message.getType() == StatusMessageInfo.MessageType.WHOIS) {
             SpannableString str = new SpannableString(mContext.getString(R.string.message_whois,
                     ((WhoisStatusMessageInfo) message).getWhoisInfo().getNick()));
-            str.setSpan(new ForegroundColorSpan(mContext.getResources().getColor(
-                    R.color.motdColor)), 0, str.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            str.setSpan(new ForegroundColorSpan(ContextCompat.getColor(mContext, R.color.motdColor)), 0, str.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             text = str;
         } else {
             text = IRCColorUtils.getFormattedString(mContext, message.getMessage());

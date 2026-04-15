@@ -64,6 +64,7 @@ public class ChatLogStorageManager implements ServerConfigManager.ConnectionsLis
         onSettingChanged();
 
         mExecutor = new PoolSerialExecutor();
+        ((PoolSerialExecutor) mExecutor).setParentExecutor(((IRCApplication) context.getApplicationContext()).getExecutorService());
 
         mServerConfigManager.addListener(this);
         List<ServerConfigData> servers = mServerConfigManager.getServers();
@@ -169,10 +170,7 @@ public class ChatLogStorageManager implements ServerConfigManager.ConnectionsLis
             if (!chatLogDir.exists())
                 return 0L;
             StatFs statFs = new StatFs(chatLogDir.getAbsolutePath());
-            if (Build.VERSION.SDK_INT >= 18)
-                mBlockSize = statFs.getBlockSizeLong();
-            else
-                mBlockSize = statFs.getBlockSize();
+            mBlockSize = statFs.getBlockSizeLong();
         }
         return mBlockSize;
     }

@@ -3,18 +3,21 @@ package io.mrarm.irc.config;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
+import androidx.preference.PreferenceManager;
 import android.util.Log;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
-import net.lingala.zip4j.core.ZipFile;
+import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.model.FileHeader;
 import net.lingala.zip4j.model.ZipParameters;
-import net.lingala.zip4j.util.Zip4jConstants;
+import net.lingala.zip4j.model.enums.AesKeyStrength;
+import net.lingala.zip4j.model.enums.CompressionLevel;
+import net.lingala.zip4j.model.enums.CompressionMethod;
+import net.lingala.zip4j.model.enums.EncryptionMethod;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -57,15 +60,14 @@ public class BackupManager {
 
             ZipFile zipFile = new ZipFile(file);
             ZipParameters params = new ZipParameters();
-            params.setCompressionMethod(Zip4jConstants.COMP_DEFLATE);
-            params.setCompressionLevel(Zip4jConstants.DEFLATE_LEVEL_NORMAL);
+            params.setCompressionMethod(CompressionMethod.DEFLATE);
+            params.setCompressionLevel(CompressionLevel.NORMAL);
             if (password != null) {
                 params.setEncryptFiles(true);
-                params.setEncryptionMethod(Zip4jConstants.ENC_METHOD_AES);
-                params.setAesKeyStrength(Zip4jConstants.AES_STRENGTH_256);
-                params.setPassword(password);
+                params.setEncryptionMethod(EncryptionMethod.AES);
+                params.setAesKeyStrength(AesKeyStrength.KEY_STRENGTH_256);
+                zipFile.setPassword(password.toCharArray());
             }
-            params.setSourceExternalStream(true);
 
             params.setFileNameInZip(BACKUP_PREFERENCES_PATH);
             zipFile.addStream(exportPreferencesToJson(context), params);
@@ -142,11 +144,10 @@ public class BackupManager {
     }
 
     public static void restoreBackup(Context context, File file, String password) throws IOException {
-        try {
-            ZipFile zipFile = new ZipFile(file);
+        try (ZipFile zipFile = new ZipFile(file)) {
 
             if (password != null)
-                zipFile.setPassword(password);
+                zipFile.setPassword(password.toCharArray());
 
             Reader reader = new BufferedReader(new InputStreamReader(zipFile.getInputStream(
                     zipFile.getFileHeader(BACKUP_PREFERENCES_PATH))));
@@ -204,7 +205,7 @@ public class BackupManager {
                         name = name.substring(iof + 1);
                     zipFile.extractFile(fileHeader,
                             ListWithCustomSetting.getCustomFilesDir(context).getAbsolutePath(),
-                            null, name);
+                            name);
                 }
                 if (fileHeader.getFileName().startsWith(BACKUP_THEME_PREFIX) &&
                         fileHeader.getFileName().endsWith(BACKUP_THEME_SUFFIX)) {
@@ -214,7 +215,7 @@ public class BackupManager {
                     try {
                         File extractTo = themeManager.getThemePath(UUID.fromString(uuid));
                         zipFile.extractFile(fileHeader, extractTo.getParentFile().getAbsolutePath(),
-                                null, extractTo.getName());
+                                extractTo.getName());
                     } catch (IllegalArgumentException e) {
                         Log.w("BackupManager", "Failed to restore theme " + uuid);
                     }
@@ -249,7 +250,7 @@ public class BackupManager {
             try {
                 zipFile.extractFile(NOTIFICATION_COUNT_DB_PATH,
                         ListWithCustomSetting.getCustomFilesDir(context).getAbsolutePath(),
-                        null, NotificationCountStorage.getFile(context).getAbsolutePath());
+                        NotificationCountStorage.getFile(context).getName());
             } catch (ZipException ignored) {
             }
             NotificationCountStorage.getInstance(context).open();
@@ -284,18 +285,23 @@ public class BackupManager {
                     prefs.putBoolean(entry.getKey(), primitive.getAsBoolean());
                 } else if (primitive.isNumber()) {
                     Number number = primitive.getAsNumber();
-                    if (number instanceof Float || number instanceof Double)
+                    String s = number.toString();
+                    if (s.contains(".") || s.contains("e") || s.contains("E")) {
                         prefs.putFloat(entry.getKey(), number.floatValue());
-                    else if (number instanceof Long)
-                        prefs.putLong(entry.getKey(), number.longValue());
-                    else
-                        prefs.putInt(entry.getKey(), number.intValue());
+                    } else {
+                        try {
+                            // Try to parse as int first, then long if it fails
+                            prefs.putInt(entry.getKey(), number.intValue());
+                        } catch (Exception e) {
+                            prefs.putLong(entry.getKey(), number.longValue());
+                        }
+                    }
                 } else if (primitive.isString()) {
                     prefs.putString(entry.getKey(), primitive.getAsString());
                 }
             }
         }
-        prefs.commit(); // This will be called asynchronously
+        prefs.apply();
     }
 
 }

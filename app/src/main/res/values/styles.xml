@@ -17,6 +17,7 @@
 
         <item name="actionBarTextColorPrimary">@color/abc_primary_text_material_dark</item>
         <item name="actionBarTextColorSecondary">@color/abc_secondary_text_material_dark</item>
+        <item name="colorBackgroundFloating">?android:attr/colorBackgroundFloating</item>
     </style>
 
     <style name="AppTheme.NoActionBar">

@@ -142,9 +142,9 @@ public class CommandAliasesAdapter extends RecyclerView.Adapter<RecyclerView.Vie
                             .setTitle(R.string.action_delete_confirm_title)
                             .setMessage(ctx.getString(R.string.action_delete_confirm_body, mText.getText()))
                             .setPositiveButton(R.string.action_delete, (DialogInterface di2, int which2) -> {
-                                adapter.mManager.getUserAliases().remove(getAdapterPosition() - 1);
+                                adapter.mManager.getUserAliases().remove(getBindingAdapterPosition() - 1);
                                 adapter.mManager.saveUserSettings();
-                                adapter.notifyItemRemoved(getAdapterPosition());
+                                adapter.notifyItemRemoved(getBindingAdapterPosition());
                                 if (adapter.mManager.getUserAliases().size() == 0)
                                     adapter.notifyItemRemoved(0); // header
                             })

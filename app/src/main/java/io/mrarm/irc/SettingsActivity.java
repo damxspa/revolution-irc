@@ -2,6 +2,7 @@ package io.mrarm.irc;
 
 import android.content.Intent;
 import android.os.Bundle;
+import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 import android.view.MenuItem;
@@ -29,6 +30,9 @@ public class SettingsActivity extends ThemedActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
+
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         getSupportFragmentManager().addOnBackStackChangedListener(() -> {
@@ -39,6 +43,7 @@ public class SettingsActivity extends ThemedActivity {
                     .replace(R.id.content_frame, CategoriesFragment.newInstance())
                     .commit();
         }
+        updateTitle();
     }
 
     public SimpleCounter getRequestCodeCounter() {
@@ -55,16 +60,12 @@ public class SettingsActivity extends ThemedActivity {
             getSupportActionBar().setTitle(R.string.title_activity_settings);
     }
 
-    @Override
-    public void onAttachFragment(Fragment fragment) {
-        super.onAttachFragment(fragment);
-        updateTitle();
-    }
+
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            onBackPressed();
+            getOnBackPressedDispatcher().onBackPressed();
             return true;
         }
         return super.onOptionsItemSelected(item);

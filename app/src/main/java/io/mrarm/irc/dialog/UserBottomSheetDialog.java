@@ -9,6 +9,7 @@ import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.util.Pair;
+import androidx.core.content.ContextCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -179,9 +180,9 @@ public class UserBottomSheetDialog {
         if (mDialog == null)
             return;
         if (mAway)
-            mDialog.setStatusBarColor(mContext.getResources().getColor(R.color.userAwayColorPrimaryDark));
+            mDialog.setStatusBarColor(ContextCompat.getColor(mContext, R.color.userAwayColorPrimaryDark));
         else
-            mDialog.setStatusBarColor(mContext.getResources().getColor(R.color.colorPrimaryDark));
+            mDialog.setStatusBarColor(ContextCompat.getColor(mContext, R.color.colorPrimaryDark));
     }
 
     public BottomSheetDialog show() {

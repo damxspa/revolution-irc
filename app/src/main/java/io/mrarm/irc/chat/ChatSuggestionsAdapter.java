@@ -8,6 +8,8 @@ import android.widget.Filter;
 import android.widget.Filterable;
 import android.widget.TextView;
 
+import androidx.core.content.ContextCompat;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -117,7 +119,7 @@ public class ChatSuggestionsAdapter extends SelectableRecyclerViewAdapter<ChatSu
                 ChannelInfoAdapter.MemberHolder.bindText(mText, (NickWithPrefix) item);
             } else {
                 mText.setText(item.toString());
-                mText.setTextColor(mText.getContext().getResources().getColor(R.color.memberNormal));
+                mText.setTextColor(ContextCompat.getColor(mText.getContext(), R.color.memberNormal));
             }
         }
 

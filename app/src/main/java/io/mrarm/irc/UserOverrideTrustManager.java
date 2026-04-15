@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.Build;
 import androidx.core.app.NotificationCompat;
 import androidx.appcompat.app.AlertDialog;
 import android.util.Log;
@@ -169,7 +170,10 @@ public class UserOverrideTrustManager implements X509TrustManager, HostnameVerif
             notification.setContentText(context.getString(R.string.certificate_error, getServerName()));
             Intent notificationIntent = new Intent(context, MainActivity.class);
             notificationIntent.putExtra(MainActivity.ARG_SERVER_UUID, mServerUUID.toString());
-            notification.setContentIntent(PendingIntent.getActivity(context, notificationId, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT));
+            int flags = PendingIntent.FLAG_CANCEL_CURRENT;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                flags |= PendingIntent.FLAG_IMMUTABLE;
+            notification.setContentIntent(PendingIntent.getActivity(context, notificationId, notificationIntent, flags));
         }
 
         @Override

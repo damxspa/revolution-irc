@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <attr name="ircColors" type="reference" />
+    <attr name="colorBackgroundFloating" format="color" />
     <attr name="actionBarTextColorPrimary" type="reference" />
     <attr name="actionBarTextColorSecondary" type="reference" />
 

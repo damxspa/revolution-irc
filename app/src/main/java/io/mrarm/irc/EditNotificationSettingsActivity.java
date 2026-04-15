@@ -26,6 +26,9 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -58,7 +61,14 @@ public class EditNotificationSettingsActivity extends ThemedActivity {
 
     SettingsListAdapter mAdapter;
     SimpleCounter mRequestCodeCounter = new SimpleCounter(1);
-    int mAndroidNotSettingsReqCode = mRequestCodeCounter.next();
+
+    private final ActivityResultLauncher<Intent> mAndroidNotSettingsLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (hasNotificationRuleChanges())
+                    loadOptions();
+            }
+    );
 
     NotificationRule mEditingRule;
     boolean mEditingDefaultRule = false;
@@ -91,6 +101,7 @@ public class EditNotificationSettingsActivity extends ThemedActivity {
         }
 
         setContentView(R.layout.activity_edit_notification_settings);
+        setSupportActionBar(findViewById(R.id.toolbar));
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         mRecyclerView = findViewById(R.id.list);
@@ -174,7 +185,7 @@ public class EditNotificationSettingsActivity extends ThemedActivity {
                         intent.putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
                         intent.putExtra(Settings.EXTRA_CHANNEL_ID,
                                 mEditingRule.settings.notificationChannelId);
-                        startActivityForResult(intent, mAndroidNotSettingsReqCode);
+                        mAndroidNotSettingsLauncher.launch(intent);
                     }));
         }
         mRecyclerView.setAdapter(mAdapter);
@@ -414,11 +425,6 @@ public class EditNotificationSettingsActivity extends ThemedActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == mAndroidNotSettingsReqCode) {
-            if (hasNotificationRuleChanges())
-                loadOptions();
-            return;
-        }
         mAdapter.onActivityResult(requestCode, resultCode, data);
     }
 
@@ -593,7 +599,7 @@ public class EditNotificationSettingsActivity extends ThemedActivity {
         public AddRuleEntryHolder(View itemView, SettingsListAdapter adapter) {
             super(itemView, adapter);
             itemView.setOnClickListener((View v) -> {
-                adapter.add(getAdapterPosition(), new RuleEntry(NotificationRule.AppliesToEntry.channelMessages()));
+                adapter.add(getBindingAdapterPosition(), new RuleEntry(NotificationRule.AppliesToEntry.channelMessages()));
             });
         }
 
@@ -669,7 +675,7 @@ public class EditNotificationSettingsActivity extends ThemedActivity {
             });
             deleteButton.setOnClickListener((View view) -> {
                 itemView.clearFocus();
-                adapter.remove(getAdapterPosition());
+                adapter.remove(getBindingAdapterPosition());
             });
             mServerSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override

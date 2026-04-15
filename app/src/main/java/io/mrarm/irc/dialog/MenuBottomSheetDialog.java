@@ -129,7 +129,7 @@ public class MenuBottomSheetDialog extends ProperHeightBottomSheetDialog {
             mIcon = itemView.findViewById(R.id.icon);
             mText = itemView.findViewById(R.id.text);
             itemView.setOnClickListener((View v) -> {
-                Item item = (Item) mItems.get(getAdapterPosition());
+                Item item = (Item) mItems.get(getBindingAdapterPosition());
                 if (item.mClickListener != null && item.mClickListener.onClick(item))
                     dismiss();
             });

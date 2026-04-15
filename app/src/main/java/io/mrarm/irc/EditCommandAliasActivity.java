@@ -2,6 +2,7 @@ package io.mrarm.irc;
 
 import android.content.res.ColorStateList;
 import android.os.Bundle;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.ViewCompat;
 import android.text.InputType;
 import android.view.Menu;
@@ -38,6 +39,9 @@ public class EditCommandAliasActivity extends ThemedActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_command_alias);
+
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         String aliasName = getIntent().getStringExtra(ARG_ALIAS_NAME);

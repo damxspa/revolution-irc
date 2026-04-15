@@ -9,6 +9,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.os.SystemClock;
 import androidx.annotation.RequiresApi;
 import android.util.Log;
 
@@ -20,7 +21,6 @@ import io.mrarm.irc.config.UiSettingChangeCallback;
 public class ServerPingScheduler {
 
     private static final String TAG = "ServerPingScheduler";
-
     private static final int INTENT_ID = 300;
     public static final int JOB_ID = 1;
 
@@ -32,16 +32,14 @@ public class ServerPingScheduler {
         return instance;
     }
 
-
     private Context context;
     private boolean running;
-    private boolean enabled = false;
-    private long interval = 15 * 60 * 1000; // 15 minutes
-    private boolean onlyOnWifi = true;
+    private boolean enabled = true;
+    private long interval = 15 * 1000; // 15 segundos constantes
+    private boolean onlyOnWifi = false;
 
     public ServerPingScheduler(Context ctx) {
         this.context = ctx;
-
         SettingsHelper.registerCallbacks(this);
         onSettingChanged();
     }
@@ -58,16 +56,13 @@ public class ServerPingScheduler {
 
     void onJobRan() {
         if (!running) {
-            // The job should not be running
-            Log.w(TAG, "A job that should have not ran has been started; forcibly stopping");
             forceStop();
+            return;
         }
+        scheduleNext();
     }
 
     public void startIfEnabled() {
-        if (!enabled)
-            return;
-
         if (isUsingNetworkStateAwareApi() || !onlyOnWifi) {
             start();
         } else {
@@ -76,90 +71,84 @@ public class ServerPingScheduler {
     }
 
     public void onWifiStateChanged(boolean connectedToWifi) {
-        if (!isUsingNetworkStateAwareApi() && onlyOnWifi)
-            return;
-        if (connectedToWifi)
-            start();
-        else
-            stop();
+        if (!isUsingNetworkStateAwareApi() && onlyOnWifi) {
+            if (connectedToWifi) start();
+            else stop();
+        }
     }
 
     public boolean isUsingJobService() {
-        return (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP);
+        // JobService no permite intervalos menores a 15 minutos. 
+        // Para 15 segundos DEBEMOS usar AlarmManager.
+        return false;
     }
 
     public boolean isUsingNetworkStateAwareApi() {
         return isUsingJobService();
     }
 
-    @SuppressLint("NewApi")
     private void start() {
-        if (running)
-            return;
-        Log.d(TAG, "Starting the job (with job service = " + isUsingJobService() + ")");
+        if (running) return;
+        Log.d(TAG, "Starting persistent Ping Scheduler (15s interval)");
         running = true;
-        if (isUsingJobService())
-            startUsingJobService();
-        else
-            startUsingAlarmManager();
+        startUsingAlarmManager();
     }
 
     public void stop() {
-        if (!running)
-            return;
-        Log.d(TAG, "Stopping the job (with job service = " + isUsingJobService() + ")");
+        if (!running) return;
         forceStop();
     }
 
-    @SuppressLint("NewApi")
     public void forceStop() {
         running = false;
-        if (isUsingJobService())
-            stopUsingJobService();
-        else
-            stopUsingAlarmManager();
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private void startUsingJobService() {
-        JobInfo jobInfo = new JobInfo.Builder(JOB_ID,
-                new ComponentName(context, ServerPingJobService.class))
-                .setPeriodic(interval)
-                .setRequiredNetworkType(onlyOnWifi ? JobInfo.NETWORK_TYPE_UNMETERED
-                        : JobInfo.NETWORK_TYPE_ANY)
-                .build();
-        JobScheduler scheduler = (JobScheduler)
-                context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
-        assert scheduler != null;
-        scheduler.schedule(jobInfo);
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private void stopUsingJobService() {
-        JobScheduler scheduler = (JobScheduler)
-                context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
-        assert scheduler != null;
-        scheduler.cancel(JOB_ID);
+        stopUsingAlarmManager();
     }
 
     private PendingIntent getAlarmManagerIntent() {
         Intent intent = new Intent(context, ServerPingBroadcastReceiver.class);
-        PendingIntent pi = PendingIntent.getBroadcast(context, INTENT_ID, intent, 0);
-        return pi;
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        return PendingIntent.getBroadcast(context, INTENT_ID, intent, flags);
+    }
+
+    private PendingIntent getShowIntent() {
+        Intent intent = new Intent(context, io.mrarm.irc.MainActivity.class);
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        return PendingIntent.getActivity(context, 0, intent, flags);
     }
 
     private void startUsingAlarmManager() {
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        assert am != null;
+        if (am == null) return;
 
-        am.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP, System.currentTimeMillis(),
-                interval, getAlarmManagerIntent());
+        long triggerAtWall = System.currentTimeMillis() + interval;
+
+        // setAlarmClock es el método más potente disponible. 
+        // Al ser tratado como una "Alarma de Reloj", el sistema (incluido OriginOS) 
+        // tiene mucha más dificultad para ignorarlo o retrasarlo.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            AlarmManager.AlarmClockInfo info = new AlarmManager.AlarmClockInfo(triggerAtWall, getShowIntent());
+            am.setAlarmClock(info, getAlarmManagerIntent());
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtWall, getAlarmManagerIntent());
+        } else {
+            am.set(AlarmManager.RTC_WAKEUP, triggerAtWall, getAlarmManagerIntent());
+        }
+    }
+
+    public void scheduleNext() {
+        if (running) {
+            startUsingAlarmManager();
+        }
     }
 
     private void stopUsingAlarmManager() {
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        assert am != null;
-        am.cancel(getAlarmManagerIntent());
+        if (am != null) {
+            am.cancel(getAlarmManagerIntent());
+        }
     }
-
 }

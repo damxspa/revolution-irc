@@ -87,6 +87,15 @@ public class ThemeEditorActivity extends ThemedActivity {
 
         mTabLayout = findViewById(R.id.tabs);
         mTabLayout.setupWithViewPager(mViewPager, false);
+
+        getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                ThemeManager.getInstance(ThemeEditorActivity.this).invalidateCurrentCustomTheme();
+                setEnabled(false);
+                getOnBackPressedDispatcher().onBackPressed();
+            }
+        });
     }
 
     @Override
@@ -100,7 +109,7 @@ public class ThemeEditorActivity extends ThemedActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            onBackPressed();
+            getOnBackPressedDispatcher().onBackPressed();
             return true;
         }
         if (item.getItemId() == R.id.action_rename) {
@@ -151,11 +160,6 @@ public class ThemeEditorActivity extends ThemedActivity {
         super.onActivityResult(requestCode, resultCode, data);
     }
 
-    @Override
-    public void onBackPressed() {
-        ThemeManager.getInstance(this).invalidateCurrentCustomTheme();
-        super.onBackPressed();
-    }
 
     @Override
     protected void onPause() {

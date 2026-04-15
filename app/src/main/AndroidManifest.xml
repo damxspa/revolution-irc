@@ -7,6 +7,19 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
     <application
         android:name=".IRCApplication"
@@ -70,19 +83,24 @@
         </activity>
         <activity
             android:name=".EditServerActivity"
-            android:label="@string/edit_server" />
+            android:label="@string/edit_server"
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".EditNotificationSettingsActivity"
-            android:label="@string/title_activity_edit_notification_settings" />
+            android:label="@string/title_activity_edit_notification_settings"
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".EditCommandAliasActivity"
-            android:label="@string/title_activity_edit_command_alias" />
+            android:label="@string/title_activity_edit_command_alias"
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".IgnoreListActivity"
-            android:label="@string/title_activity_ignore_list" />
+            android:label="@string/title_activity_ignore_list"
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".EditIgnoreEntryActivity"
-            android:label="@string/title_activity_edit_ignore_entry" />
+            android:label="@string/title_activity_edit_ignore_entry"
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".ChannelListActivity"
             android:configChanges="keyboardHidden|orientation|screenSize|screenLayout"
@@ -90,14 +108,16 @@
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".CertificateManagerActivity"
-            android:label="@string/title_activity_certificate_manager" />
+            android:label="@string/title_activity_certificate_manager"
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".SettingsActivity"
             android:label="@string/title_activity_settings"
-            android:theme="@style/AppTheme" />
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".MessageFormatSettingsActivity"
-            android:label="@string/title_activity_message_format_settings" />
+            android:label="@string/title_activity_message_format_settings"
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".ThemeEditorActivity"
             android:label="@string/title_activity_theme_editor"
@@ -128,7 +148,9 @@
             android:exported="true"
             android:label="@string/title_activity_dcc" />
 
-        <service android:name=".IRCService" />
+        <service
+            android:name=".IRCService"
+            android:foregroundServiceType="connectedDevice|dataSync" />
         <service
             android:name=".job.ServerPingJobService"
             android:permission="android.permission.BIND_JOB_SERVICE" />

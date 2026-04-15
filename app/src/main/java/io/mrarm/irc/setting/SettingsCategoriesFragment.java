@@ -3,6 +3,7 @@ package io.mrarm.irc.setting;
 import android.os.Bundle;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -26,7 +27,9 @@ public abstract class SettingsCategoriesFragment extends Fragment {
         View view = LayoutInflater.from(container.getContext())
                 .inflate(R.layout.simple_list, container, false);
         RecyclerView recyclerView = view.findViewById(R.id.items);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
+        recyclerView.setLayoutManager(layoutManager);
+        recyclerView.addItemDecoration(new DividerItemDecoration(getContext(), layoutManager.getOrientation()));
         recyclerView.setAdapter(new Adapter(getItems()));
         return view;
     }

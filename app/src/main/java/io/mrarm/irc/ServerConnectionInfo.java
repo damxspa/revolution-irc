@@ -213,6 +213,19 @@ public class ServerConnectionInfo {
         disconnect(false);
     }
 
+    public void forceReconnect() {
+        synchronized (this) {
+            mReconnectHandler.removeCallbacks(mReconnectRunnable);
+            mUserDisconnectRequest = false; // Asegurar que no se trate como desconexión voluntaria
+            if (isConnected()) {
+                mDisconnecting = true;
+                ((IRCConnection) mApi).disconnect(true);
+            } else {
+                connect();
+            }
+        }
+    }
+
     public void notifyUserExecutedQuit() {
         disconnect(true);
     }
@@ -226,8 +239,11 @@ public class ServerConnectionInfo {
             notifyFullyDisconnected();
             return;
         }
+
+        int reconnectDelay = mManager.getReconnectDelay(mCurrentReconnectAttempt++);
+        
         synchronized (this) {
-            setConnected(false);
+            mConnected = false;
             mConnecting = false;
             if (mDisconnecting) {
                 notifyFullyDisconnected();
@@ -235,13 +251,14 @@ public class ServerConnectionInfo {
             }
             if (mUserDisconnectRequest)
                 return;
+
+            if (reconnectDelay != -1) {
+                Log.i("ServerConnectionInfo", "Queuing reconnect in " + reconnectDelay + " ms");
+                mReconnectQueueTime = System.nanoTime();
+                mReconnectHandler.postDelayed(mReconnectRunnable, reconnectDelay);
+            }
         }
-        int reconnectDelay = mManager.getReconnectDelay(mCurrentReconnectAttempt++);
-        if (reconnectDelay == -1)
-            return;
-        Log.i("ServerConnectionInfo", "Queuing reconnect in " + reconnectDelay + " ms");
-        mReconnectQueueTime = System.nanoTime();
-        mReconnectHandler.postDelayed(mReconnectRunnable, reconnectDelay);
+        notifyInfoChanged();
     }
 
     private void notifyFullyDisconnected() {
@@ -278,13 +295,18 @@ public class ServerConnectionInfo {
             connect(); // this will be ignored if we are already connected
         } else if (mReconnectQueueTime != -1L) {
             long reconnectDelay = mManager.getReconnectDelay(mCurrentReconnectAttempt++);
-            if (reconnectDelay == -1)
+            if (reconnectDelay == -1) {
+                mReconnectQueueTime = -1L;
+                notifyInfoChanged();
                 return;
+            }
             reconnectDelay = reconnectDelay - (System.nanoTime() - mReconnectQueueTime) / 1000000L;
-            if (reconnectDelay <= 0L)
+            if (reconnectDelay <= 0L) {
                 connect();
-            else
+            } else {
                 mReconnectHandler.postDelayed(mReconnectRunnable, reconnectDelay);
+                notifyInfoChanged();
+            }
         }
     }
 
@@ -294,6 +316,14 @@ public class ServerConnectionInfo {
 
     public String getName() {
         return mServerConfig.name;
+    }
+
+    public String getServerAddress() {
+        return mServerConfig.address;
+    }
+
+    public synchronized boolean isWaitingToReconnect() {
+        return mReconnectQueueTime != -1L;
     }
 
     public synchronized ChatApi getApiInstance() {

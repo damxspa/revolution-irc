@@ -4,6 +4,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.os.Build;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.appcompat.widget.Toolbar;
@@ -87,7 +88,7 @@ public class ListSearchView extends FrameLayout {
             return true;
         });
 
-        mStatusBarColor = getResources().getColor(R.color.searchColorPrimaryDark);
+        mStatusBarColor = ContextCompat.getColor(context, R.color.searchColorPrimaryDark);
     }
 
     public void setDialog(Dialog dialog) {

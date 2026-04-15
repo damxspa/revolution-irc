@@ -12,6 +12,9 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -23,12 +26,23 @@ import io.mrarm.irc.util.AdvancedDividerItemDecoration;
 
 public class IRCLinkActivity extends ThemedActivity {
 
-    private static final int REQUEST_ADD_SERVER = 100;
-
     private String mHostName;
     private String mChannelName;
     private ServerConnectionInfo mSelectedConnection;
     private OpenTaskChannelListListener mOpenTask;
+
+    private final ActivityResultLauncher<Intent> mAddServerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null &&
+                        result.getData().getAction() != null &&
+                        result.getData().getAction().equals(EditServerActivity.RESULT_ACTION)) {
+                    String uuid = result.getData().getStringExtra(EditServerActivity.ARG_SERVER_UUID);
+                    openServer(ServerConfigManager.getInstance(this).findServer(
+                            UUID.fromString(uuid)));
+                }
+            }
+    );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,15 +101,6 @@ public class IRCLinkActivity extends ThemedActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_ADD_SERVER && data != null && data.getAction() != null &&
-                data.getAction().equals(EditServerActivity.RESULT_ACTION)) {
-            ServerConnectionManager mgr = ServerConnectionManager.getInstance(this);
-
-            String uuid = data.getStringExtra(EditServerActivity.ARG_SERVER_UUID);
-            openServer(ServerConfigManager.getInstance(this).findServer(
-                    UUID.fromString(uuid)));
-            return;
-        }
         super.onActivityResult(requestCode, resultCode, data);
     }
 
@@ -423,7 +428,7 @@ public class IRCLinkActivity extends ThemedActivity {
                     intent.putExtra(EditServerActivity.ARG_NAME, mHostName);
                     intent.putExtra(EditServerActivity.ARG_ADDRESS, mHostName);
                     intent.putExtra(EditServerActivity.ARG_AUTOJOIN_CHANNELS, channels);
-                    mContext.startActivityForResult(intent, REQUEST_ADD_SERVER);
+                    mContext.mAddServerLauncher.launch(intent);
                 }
                 if (mActionType == ACTION_SHOW_ALL) {
                     reloadServerList(false);
