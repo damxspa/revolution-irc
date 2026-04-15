@@ -1,13 +1,15 @@
 package io.mrarm.irc;
 
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -36,13 +38,14 @@ public class ChannelListActivity extends ThemedActivity {
     private ServerConnectionInfo mConnection;
     private View mMainAppBar;
     private View mSearchAppBar;
+    private View mAppBarLayout;
     private SearchView mSearchView;
     private ListAdapter mListAdapter;
 
     private String mFilterQuery;
     private int mSortMode = SORT_NAME;
 
-    private UpdateListAsyncTask mUpdateListAsyncTask;
+    private boolean mUpdatePending = false;
 
     private List<ChannelList.Entry> mEntries = new ArrayList<>();
     private List<ChannelList.Entry> mFilteredEntries = new ArrayList<>();
@@ -66,7 +69,20 @@ public class ChannelListActivity extends ThemedActivity {
 
         mMainAppBar = findViewById(R.id.appbar);
         mSearchAppBar = findViewById(R.id.search_appbar);
+        mAppBarLayout = findViewById(R.id.appbar_layout);
         mSearchView = findViewById(R.id.search_view);
+
+        getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (mSearchAppBar.getVisibility() == View.VISIBLE) {
+                    setSearchMode(false);
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
 
         UUID serverUUID = UUID.fromString(getIntent().getStringExtra(ARG_SERVER_UUID));
         mConnection = ServerConnectionManager.getInstance(this).getConnection(serverUUID);
@@ -111,10 +127,46 @@ public class ChannelListActivity extends ThemedActivity {
     }
 
     private void requestListUpdate() {
-        if (mUpdateListAsyncTask == null) {
-            mUpdateListAsyncTask = new UpdateListAsyncTask(this);
-            mUpdateListAsyncTask.execute();
-        }
+        if (mUpdatePending)
+            return;
+        mUpdatePending = true;
+        String filterQuery = mFilterQuery;
+        int sortMode = mSortMode;
+        ((IRCApplication) getApplication()).getExecutorService().execute(() -> {
+            synchronized (mAppendEntries) {
+                mEntries.addAll(mAppendEntries);
+                mAppendEntries.clear();
+                if (mAssignEntries != null) {
+                    mEntries = mAssignEntries;
+                    mAssignEntries = null;
+                }
+            }
+            List<ChannelList.Entry> filtered = new ArrayList<>();
+            for (ChannelList.Entry entry : mEntries) {
+                if (filterEntry(entry, filterQuery))
+                    filtered.add(entry);
+            }
+            if (sortMode == SORT_NAME) {
+                Collections.sort(filtered, (ChannelList.Entry l, ChannelList.Entry r) ->
+                        l.getChannel().compareToIgnoreCase(r.getChannel()));
+            } else if (sortMode == SORT_MEMBER_COUNT) {
+                Collections.sort(filtered, (ChannelList.Entry l, ChannelList.Entry r) ->
+                        Integer.compare(r.getMemberCount(), l.getMemberCount()));
+            }
+            new Handler(Looper.getMainLooper()).post(() -> {
+                mUpdatePending = false;
+                mFilteredEntries = filtered;
+                mListAdapter.notifyDataSetChanged();
+                if ((filterQuery != null && !filterQuery.equals(mFilterQuery)) ||
+                        sortMode != mSortMode) {
+                    requestListUpdate();
+                }
+                synchronized (mAppendEntries) {
+                    if (mAppendEntries.size() > 0)
+                        requestListUpdate();
+                }
+            });
+        });
     }
 
     @Override
@@ -128,7 +180,7 @@ public class ChannelListActivity extends ThemedActivity {
         int id = item.getItemId();
         if (id == android.R.id.home) {
             InputMethodManager manager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-            manager.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+            manager.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), 0);
             finish();
             return true;
         } else if (id == R.id.action_search) {
@@ -148,24 +200,19 @@ public class ChannelListActivity extends ThemedActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    public void onBackPressed() {
-        if (mSearchAppBar.getVisibility() == View.VISIBLE) {
-            setSearchMode(false);
-            return;
-        }
-        super.onBackPressed();
-    }
 
     public void setSearchMode(boolean searchMode) {
         mMainAppBar.setVisibility(searchMode ? View.GONE : View.VISIBLE);
         mSearchAppBar.setVisibility(searchMode ? View.VISIBLE : View.GONE);
 
         if (Build.VERSION.SDK_INT >= 21) {
-            if (searchMode)
-                getWindow().setStatusBarColor(getResources().getColor(R.color.searchColorPrimaryDark));
-            else
-                getWindow().setStatusBarColor(getResources().getColor(R.color.colorPrimaryDark));
+            if (searchMode) {
+                getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.searchColorPrimaryDark));
+                mAppBarLayout.setFitsSystemWindows(false);
+            } else {
+                getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.colorPrimaryDark));
+                mAppBarLayout.setFitsSystemWindows(true);
+            }
         }
         View decorView = getWindow().getDecorView();
         if (Build.VERSION.SDK_INT >= 23) {
@@ -246,63 +293,5 @@ public class ChannelListActivity extends ThemedActivity {
 
     }
 
-    private static class UpdateListAsyncTask extends AsyncTask<Void, Void, List<ChannelList.Entry>> {
-
-        private WeakReference<ChannelListActivity> mActivity;
-        private String mStartFilterQuery;
-        private int mStartSortMode;
-
-        public UpdateListAsyncTask(ChannelListActivity activity) {
-            mActivity = new WeakReference<>(activity);
-            mStartFilterQuery = activity.mFilterQuery;
-            mStartSortMode = activity.mSortMode;
-        }
-
-        @Override
-        protected List<ChannelList.Entry> doInBackground(Void... voids) {
-            ChannelListActivity activity = mActivity.get();
-            if (activity == null)
-                return null;
-            synchronized (activity.mAppendEntries) {
-                activity.mEntries.addAll(activity.mAppendEntries);
-                activity.mAppendEntries.clear();
-                if (activity.mAssignEntries != null) {
-                    activity.mEntries = activity.mAssignEntries;
-                    activity.mAssignEntries = null;
-                }
-            }
-            List<ChannelList.Entry> ret = new ArrayList<>();
-            for (ChannelList.Entry entry : activity.mEntries) {
-                if (filterEntry(entry, mStartFilterQuery))
-                    ret.add(entry);
-            }
-            if (mStartSortMode == SORT_NAME) {
-                Collections.sort(ret, (ChannelList.Entry l, ChannelList.Entry r) ->
-                        l.getChannel().compareToIgnoreCase(r.getChannel()));
-            } else if (mStartSortMode == SORT_MEMBER_COUNT) {
-                Collections.sort(ret, (ChannelList.Entry l, ChannelList.Entry r) ->
-                        Integer.compare(r.getMemberCount(), l.getMemberCount()));
-            }
-            return ret;
-        }
-
-        @Override
-        protected void onPostExecute(List<ChannelList.Entry> ret) {
-            ChannelListActivity activity = mActivity.get();
-            if (activity == null || ret == null)
-                return;
-            activity.mFilteredEntries = ret;
-            activity.mListAdapter.notifyDataSetChanged();
-            activity.mUpdateListAsyncTask = null;
-            if ((mStartFilterQuery != null && !mStartFilterQuery.equals(activity.mFilterQuery)) ||
-                    mStartSortMode != activity.mSortMode) {
-                activity.requestListUpdate();
-            }
-            synchronized (activity.mAppendEntries) {
-                if (activity.mAppendEntries.size() > 0)
-                    activity.requestListUpdate();
-            }
-        }
-    }
 
 }

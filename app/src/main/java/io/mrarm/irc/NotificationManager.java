@@ -6,6 +6,7 @@ import android.content.Context;
 import android.os.Build;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -149,23 +150,27 @@ public class NotificationManager {
         }
         if (channel != null)
             mLastSummaryChannel = channel;
+        int pendingIntentFlags = PendingIntent.FLAG_CANCEL_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+            pendingIntentFlags |= PendingIntent.FLAG_IMMUTABLE;
+
         NotificationCompat.Builder notification = new NotificationCompat.Builder(context,
                 mLastSummaryChannel);
         PendingIntent dismissIntent = PendingIntent.getBroadcast(context,
                 ChannelNotificationManager.CHAT_DISMISS_INTENT_ID_START + CHAT_SUMMARY_NOTIFICATION_ID,
                 ChannelNotificationManager.NotificationActionReceiver.getDismissIntentForSummary(context),
-                PendingIntent.FLAG_CANCEL_CURRENT);
+                pendingIntentFlags);
         notification
                 .setAutoCancel(true)
                 .setSmallIcon(R.drawable.ic_notification_message)
                 .setGroup(NOTIFICATION_GROUP_CHAT)
                 .setGroupSummary(true)
-                .setColor(context.getResources().getColor(R.color.colorNotificationMention))
+                .setColor(ContextCompat.getColor(context, R.color.colorNotificationMention))
                 .setDeleteIntent(dismissIntent)
                 .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN);
         if (isLong) {
             PendingIntent intent = PendingIntent.getActivity(context, CHAT_SUMMARY_NOTIFICATION_ID,
-                    MainActivity.getLaunchIntent(context, null, null), PendingIntent.FLAG_CANCEL_CURRENT);
+                    MainActivity.getLaunchIntent(context, null, null), pendingIntentFlags);
             notification
                     .setContentTitle(context.getResources().getQuantityString(R.plurals.notify_multiple_messages, notificationCount, notificationCount))
                     .setContentText(longBuilder.toString())
@@ -173,7 +178,7 @@ public class NotificationManager {
         } else {
             PendingIntent intent = PendingIntent.getActivity(context, CHAT_SUMMARY_NOTIFICATION_ID,
                     MainActivity.getLaunchIntent(context, first.getConnection(), first.getChannel()),
-                    PendingIntent.FLAG_CANCEL_CURRENT);
+                    pendingIntentFlags);
             notification
                     .setContentTitle(first.getChannel())
                     .setContentText(first.getNotificationMessage(first.getNotificationMessageCount() - 1).getNotificationText(context))

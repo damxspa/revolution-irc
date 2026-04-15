@@ -11,6 +11,7 @@ import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import com.google.android.material.snackbar.Snackbar;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.ColorUtils;
 import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.appcompat.content.res.AppCompatResources;
@@ -210,7 +211,7 @@ public class NotificationRulesAdapter extends RecyclerView.Adapter<RecyclerView.
             super(adapter, itemView);
             itemView.setOnClickListener((View view) -> {
                 Intent intent = new Intent(view.getContext(), EditNotificationSettingsActivity.class);
-                intent.putExtra(EditNotificationSettingsActivity.ARG_USER_RULE_INDEX, getAdapterPosition() - adapter.getUserRulesStartIndex());
+                intent.putExtra(EditNotificationSettingsActivity.ARG_USER_RULE_INDEX, getBindingAdapterPosition() - adapter.getUserRulesStartIndex());
                 view.getContext().startActivity(intent);
             });
             itemView.findViewById(R.id.reorder).setOnTouchListener((View v, MotionEvent e) -> {
@@ -284,9 +285,9 @@ public class NotificationRulesAdapter extends RecyclerView.Adapter<RecyclerView.
 
         MyItemTouchHelperCallback(Context context) {
             mSwipePaint = new Paint();
-            mSwipePaint.setColor(context.getResources().getColor(R.color.colorSwipeDeleteBackground));
+            mSwipePaint.setColor(ContextCompat.getColor(context, R.color.colorSwipeDeleteBackground));
             mDeleteIcon = AppCompatResources.getDrawable(context, R.drawable.ic_delete).mutate();
-            int iconColor = context.getResources().getColor(R.color.colorSwipeIconColor);
+            int iconColor = ContextCompat.getColor(context, R.color.colorSwipeIconColor);
             DrawableCompat.setTint(mDeleteIcon, iconColor);
             mIconPadding = context.getResources().getDimensionPixelSize(R.dimen.item_swipe_icon_padding);
         }
@@ -313,8 +314,8 @@ public class NotificationRulesAdapter extends RecyclerView.Adapter<RecyclerView.
         public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder,
                 RecyclerView.ViewHolder target) {
             int userRulesI = getUserRulesStartIndex();
-            int fromPosition = viewHolder.getAdapterPosition() - userRulesI;
-            int toPosition = Math.max(Math.min(target.getAdapterPosition() - userRulesI, mRules.size() - 1), 0);
+            int fromPosition = viewHolder.getBindingAdapterPosition() - userRulesI;
+            int toPosition = Math.max(Math.min(target.getBindingAdapterPosition() - userRulesI, mRules.size() - 1), 0);
             if (fromPosition < toPosition) {
                 for (int i = fromPosition; i < toPosition; i++)
                     Collections.swap(mRules, i, i + 1);
@@ -397,7 +398,7 @@ public class NotificationRulesAdapter extends RecyclerView.Adapter<RecyclerView.
 
         @Override
         public void onSwiped(RecyclerView.ViewHolder viewHolder, int i) {
-            int position = viewHolder.getAdapterPosition();
+            int position = viewHolder.getBindingAdapterPosition();
             int index = position - getUserRulesStartIndex();
             NotificationRule rule = mRules.remove(index);
             notifyItemRemoved(position);

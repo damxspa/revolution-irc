@@ -395,7 +395,7 @@ public class ChatFragmentSendMessageHelper implements SendMessageHelper.Callback
 
         @Override
         public void onSwiped(RecyclerView.ViewHolder viewHolder, int i) {
-            mServerMessagesListAdapter.removeItem(viewHolder.getAdapterPosition());
+            mServerMessagesListAdapter.removeItem(viewHolder.getBindingAdapterPosition());
             if (mServerMessagesListAdapter.getItemCount() == 0)
                 mServerMessagesContainer.setVisibility(View.GONE);
         }

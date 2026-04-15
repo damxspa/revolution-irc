@@ -1,6 +1,5 @@
 package io.mrarm.irc.util;
 
-import android.os.AsyncTask;
 import androidx.annotation.NonNull;
 
 import java.util.LinkedList;
@@ -21,14 +20,24 @@ public class PoolSerialExecutor implements Executor {
     }
 
     public PoolSerialExecutor() {
-        this(AsyncTask.THREAD_POOL_EXECUTOR);
+        mParentExecutor = null;
     }
 
     @Override
     public void execute(@NonNull Runnable runnable) {
         synchronized (this) {
             mQueue.add(runnable);
-            if (!mQueuedMainTask) {
+            if (!mQueuedMainTask && mParentExecutor != null) {
+                mParentExecutor.execute(mRunTasksRunnable);
+                mQueuedMainTask = true;
+            }
+        }
+    }
+
+    public void setParentExecutor(Executor parentExecutor) {
+        synchronized (this) {
+            mParentExecutor = parentExecutor;
+            if (!mQueuedMainTask && mQueue.size() > 0) {
                 mParentExecutor.execute(mRunTasksRunnable);
                 mQueuedMainTask = true;
             }

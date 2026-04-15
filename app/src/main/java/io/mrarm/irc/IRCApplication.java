@@ -6,6 +6,8 @@ import android.os.Bundle;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import io.mrarm.irc.config.SettingsHelper;
 
@@ -14,6 +16,8 @@ public class IRCApplication extends Application implements Application.ActivityL
     private List<Activity> mActivities = new ArrayList<>();
     private List<PreExitCallback> mPreExitCallbacks = new ArrayList<>();
     private List<ExitCallback> mExitCallbacks = new ArrayList<>();
+
+    private final ExecutorService mExecutorService = Executors.newFixedThreadPool(4);
 
     @Override
     public void onCreate() {
@@ -84,6 +88,10 @@ public class IRCApplication extends Application implements Application.ActivityL
     public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
     }
 
+
+    public ExecutorService getExecutorService() {
+        return mExecutorService;
+    }
 
     public interface PreExitCallback {
         boolean onAppPreExit();

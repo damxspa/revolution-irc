@@ -71,6 +71,8 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_message_format_settings);
+        androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         mMessageBuilder = new MessageBuilder(this);
@@ -421,7 +423,7 @@ public class MessageFormatSettingsActivity extends ThemedActivity {
             }
 
             InputMethodManager manager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-            manager.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+            manager.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), 0);
             finish();
             return true;
         }

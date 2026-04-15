@@ -145,7 +145,7 @@ public class ColorListPickerDialog {
                 super(view);
                 view.setOnClickListener((View v) -> {
                     int oldIndex = adapter.mDialog.mSelectedColor;
-                    adapter.mDialog.mSelectedColor = getAdapterPosition();
+                    adapter.mDialog.mSelectedColor = getBindingAdapterPosition();
                     if (oldIndex != -1)
                     adapter.notifyItemChanged(oldIndex);
                     adapter.notifyItemChanged(adapter.mDialog.mSelectedColor);

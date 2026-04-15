@@ -1,7 +1,7 @@
 package io.mrarm.irc.setting.fragment;
 
 import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
+import androidx.preference.PreferenceManager;
 
 import io.mrarm.irc.R;
 import io.mrarm.irc.config.NickAutocompleteSettings;

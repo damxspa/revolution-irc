@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.os.Build;
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import android.view.View;
 import android.view.WindowManager;
@@ -18,7 +19,7 @@ public class StatusBarColorBottomSheetDialog extends ProperHeightBottomSheetDial
         super(context);
         if (context instanceof Activity)
             setOwnerActivity((Activity) context);
-        mStatusBarColor = context.getResources().getColor(R.color.colorPrimaryDark);
+        mStatusBarColor = ContextCompat.getColor(context, R.color.colorPrimaryDark);
     }
 
     @Override

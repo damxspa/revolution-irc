@@ -2,6 +2,7 @@ package io.mrarm.irc;
 
 import android.app.Activity;
 import android.graphics.drawable.Drawable;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -48,10 +49,10 @@ public class ServerListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
     public ServerListAdapter(Activity context) {
         mContext = context;
-        mColorConnected = context.getResources().getColor(R.color.serverListConnected);
-        mColorConnecting = context.getResources().getColor(R.color.serverListConnecting);
-        mColorDisconnected = context.getResources().getColor(R.color.serverListDisconnected);
-        mColorInactive = context.getResources().getColor(R.color.serverListInactive);
+        mColorConnected = ContextCompat.getColor(context, R.color.serverListConnected);
+        mColorConnecting = ContextCompat.getColor(context, R.color.serverListConnecting);
+        mColorDisconnected = ContextCompat.getColor(context, R.color.serverListDisconnected);
+        mColorInactive = ContextCompat.getColor(context, R.color.serverListInactive);
         updateConnections();
     }
 

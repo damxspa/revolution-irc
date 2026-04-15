@@ -38,8 +38,8 @@ public class ClickableRecyclerViewAdapter<VH extends ClickableRecyclerViewAdapte
         void setClickListener(ClickableRecyclerViewAdapter<?, IT> adapter) {
             itemView.setOnClickListener((View v) -> {
                 if (adapter.mItemClickListener != null)
-                    adapter.mItemClickListener.onItemClick(getAdapterPosition(), adapter.getItems()
-                            .get(getAdapterPosition()));
+                    adapter.mItemClickListener.onItemClick(getBindingAdapterPosition(), adapter.getItems()
+                            .get(getBindingAdapterPosition()));
             });
         }
 

@@ -3,6 +3,7 @@ package io.mrarm.irc;
 import android.os.Bundle;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.appcompat.widget.Toolbar;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -27,6 +28,8 @@ public class CertificateManagerActivity extends ThemedActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_certificate_manager);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         String serverUUID = getIntent().getStringExtra(ARG_SERVER_UUID);
@@ -49,7 +52,7 @@ public class CertificateManagerActivity extends ThemedActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == android.R.id.home) {
-            finish();
+            getOnBackPressedDispatcher().onBackPressed();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -84,9 +87,9 @@ public class CertificateManagerActivity extends ThemedActivity {
             super(itemView);
             mCertificateText = itemView.findViewById(R.id.certificate);
             itemView.findViewById(R.id.delete).setOnClickListener((View v) -> {
-                mHelper.removeCertificate(mAliases.get(getAdapterPosition()));
-                mAliases.remove(getAdapterPosition());
-                mAdapter.notifyItemRemoved(getAdapterPosition());
+                mHelper.removeCertificate(mAliases.get(getBindingAdapterPosition()));
+                mAliases.remove(getBindingAdapterPosition());
+                mAdapter.notifyItemRemoved(getBindingAdapterPosition());
             });
         }
 

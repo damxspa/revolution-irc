@@ -3,10 +3,13 @@ package io.mrarm.irc;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Color;
-import android.os.AsyncTask;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.StatFs;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import android.text.style.ForegroundColorSpan;
 import android.view.LayoutInflater;
@@ -44,7 +47,7 @@ public class StorageSettingsAdapter extends RecyclerView.Adapter {
     public static final int TYPE_CONFIGURATION_SUMMARY = 2;
 
     private List<ServerLogsEntry> mServerLogEntries = new ArrayList<>();
-    private SpaceCalculateTask mAsyncTask = null;
+    private boolean mDataLoading = false;
     private long mConfigurationSize = 0L;
     private int mSecondaryTextColor;
 
@@ -55,11 +58,81 @@ public class StorageSettingsAdapter extends RecyclerView.Adapter {
     }
 
     private void refreshServerLogs(Context context) {
-        if (mAsyncTask != null)
+        if (mDataLoading)
             return;
         mServerLogEntries.clear();
-        mAsyncTask = new SpaceCalculateTask(context, this);
-        mAsyncTask.execute();
+        mDataLoading = true;
+        ServerConfigManager serverManager = ServerConfigManager.getInstance(context);
+        File dataDir = new File(context.getApplicationInfo().dataDir);
+        ((IRCApplication) context.getApplicationContext()).getExecutorService().execute(() -> {
+            long dataBlockSize = getBlockSize(dataDir);
+            long dataSize = 0L;
+            for (File file : dataDir.listFiles()) {
+                if (file.getName().equals("cache") || file.getName().equals("lib"))
+                    continue;
+                dataSize += calculateDirectorySize(file, dataBlockSize);
+            }
+            long finalDataSize = dataSize;
+            new Handler(Looper.getMainLooper()).post(() -> {
+                mConfigurationSize = finalDataSize;
+                notifyItemChanged(getItemCount() - 1);
+            });
+
+            List<File> processedDirs = new ArrayList<>();
+            for (ServerConfigData data : serverManager.getServers()) {
+                File file = serverManager.getServerChatLogDir(data.uuid);
+                processedDirs.add(file);
+                if (!file.exists())
+                    continue;
+                long size = calculateDirectorySize(file, getBlockSize(file));
+                if (size == 0L)
+                    continue;
+                ServerLogsEntry entry = new ServerLogsEntry(data.name, data.uuid, size);
+                new Handler(Looper.getMainLooper()).post(() -> addEntry(entry));
+            }
+            File[] files = serverManager.getChatLogDir().listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (processedDirs.contains(file))
+                        continue;
+                    long size = calculateDirectorySize(file, getBlockSize(file));
+                    if (size == 0L)
+                        continue;
+                    UUID uuid = null;
+                    try {
+                        uuid = UUID.fromString(file.getName());
+                    } catch (IllegalArgumentException ignored) {
+                    }
+                    ServerLogsEntry entry = new ServerLogsEntry(file.getName(), uuid, size);
+                    new Handler(Looper.getMainLooper()).post(() -> addEntry(entry));
+                }
+            }
+            new Handler(Looper.getMainLooper()).post(() -> mDataLoading = false);
+        });
+    }
+
+    private StatFs mStatFs;
+
+    private long getBlockSize(File file) {
+        if (mStatFs != null)
+            mStatFs.restat(file.getAbsolutePath());
+        else
+            mStatFs = new StatFs(file.getAbsolutePath());
+        return mStatFs.getBlockSizeLong();
+    }
+
+    private long calculateDirectorySize(File file, long blockSize) {
+        File[] files = file.listFiles();
+        if (files == null)
+            return 0L;
+        long ret = blockSize;
+        for (File subfile : files) {
+            if (subfile.isDirectory())
+                ret += calculateDirectorySize(subfile, blockSize);
+            else
+                ret += (subfile.length() + blockSize - 1) / blockSize * blockSize;
+        }
+        return ret;
     }
 
     private void addEntry(ServerLogsEntry entry) {
@@ -147,7 +220,7 @@ public class StorageSettingsAdapter extends RecyclerView.Adapter {
                         .setTitle(R.string.pref_storage_clear_all_chat_logs)
                         .setMessage(R.string.pref_storage_clear_all_chat_logs_confirm)
                         .setPositiveButton(R.string.action_delete, (DialogInterface di, int i) -> {
-                            new RemoveDataTask(v.getContext(), false, null).execute();
+                            removeData(v.getContext(), false, null);
                         })
                         .setNegativeButton(R.string.action_cancel, null)
                         .show();
@@ -160,13 +233,13 @@ public class StorageSettingsAdapter extends RecyclerView.Adapter {
             if (count > 0) {
                 float[] values = new float[count];
                 int[] colors = new int[count];
-                colors[0] = mChart.getResources().getColor(R.color.storageSettingsChartFirst);
+                colors[0] = ContextCompat.getColor(mChart.getContext(), R.color.storageSettingsChartFirst);
                 if (count > 1)
-                    colors[1] = mChart.getResources().getColor(R.color.storageSettingsChartSecond);
+                    colors[1] = ContextCompat.getColor(mChart.getContext(), R.color.storageSettingsChartSecond);
                 if (count > 2)
-                    colors[2] = mChart.getResources().getColor(R.color.storageSettingsChartThird);
+                    colors[2] = ContextCompat.getColor(mChart.getContext(), R.color.storageSettingsChartThird);
                 if (count > 3)
-                    colors[3] = mChart.getResources().getColor(R.color.storageSettingsChartOthers);
+                    colors[3] = ContextCompat.getColor(mChart.getContext(), R.color.storageSettingsChartOthers);
                 for (int i = mServerLogEntries.size() - 1; i >= 0; --i) {
                     long val = mServerLogEntries.get(i).size;
                     total += val;
@@ -248,7 +321,7 @@ public class StorageSettingsAdapter extends RecyclerView.Adapter {
                 }
             }
             menu.addItem(R.string.pref_storage_clear_server_chat_logs, R.drawable.ic_delete, (MenuBottomSheetDialog.Item it) -> {
-                new RemoveDataTask(itemView.getContext(), false, (UUID) mText.getTag()).execute();
+                removeData(itemView.getContext(), false, (UUID) mText.getTag());
                 return true;
             });
             menu.show();
@@ -265,7 +338,7 @@ public class StorageSettingsAdapter extends RecyclerView.Adapter {
                     colorId = R.color.storageSettingsChartThird;
             }
             ColoredTextBuilder builder = new ColoredTextBuilder();
-            builder.append(entry.name, new ForegroundColorSpan(mText.getResources().getColor(colorId)));
+            builder.append(entry.name, new ForegroundColorSpan(ContextCompat.getColor(mText.getContext(), colorId)));
             builder.append("  ");
             builder.append(formatFileSize(entry.size));
             mText.setText(builder.getSpannable());
@@ -286,7 +359,7 @@ public class StorageSettingsAdapter extends RecyclerView.Adapter {
                         .setTitle(R.string.pref_storage_reset_configuration)
                         .setMessage(R.string.pref_storage_reset_configuration_confirm)
                         .setPositiveButton(R.string.action_reset, (DialogInterface di, int i) -> {
-                            new RemoveDataTask(v.getContext(), true, null).execute();
+                            removeData(v.getContext(), true, null);
                         })
                         .setNegativeButton(R.string.action_cancel, null)
                         .show();
@@ -300,209 +373,86 @@ public class StorageSettingsAdapter extends RecyclerView.Adapter {
     }
 
 
-    private static class SpaceCalculateTask extends AsyncTask<Void, Object, Void> {
-
-        private WeakReference<StorageSettingsAdapter> mAdapter;
-        private ServerConfigManager mServerManager;
-        private File mDataDir;
-        private StatFs mStatFs;
-
-        public SpaceCalculateTask(Context context, StorageSettingsAdapter adapter) {
-            mServerManager = ServerConfigManager.getInstance(context);
-            mDataDir = new File(context.getApplicationInfo().dataDir);
-            mAdapter = new WeakReference<>(adapter);
-        }
-
-        @Override
-        protected Void doInBackground(Void... voids) {
-            long dataBlockSize = getBlockSize(mDataDir);
-            long dataSize = 0L;
-            for (File file : mDataDir.listFiles()) {
-                if (file.getName().equals("cache") || file.getName().equals("lib"))
-                    continue;
-                dataSize += calculateDirectorySize(file, dataBlockSize);
-            }
-            publishProgress(dataSize);
-            List<File> processedDirs = new ArrayList<>();
-            for (ServerConfigData data : mServerManager.getServers()) {
-                if (mAdapter.get() == null)
-                    return null;
-                File file = mServerManager.getServerChatLogDir(data.uuid);
-                processedDirs.add(file);
-                if (!file.exists())
-                    continue;
-                long size = calculateDirectorySize(file, getBlockSize(file));
-                if (size == 0L)
-                    continue;
-                publishProgress(new ServerLogsEntry(data.name, data.uuid, size));
-            }
-            File[] files = mServerManager.getChatLogDir().listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    if (processedDirs.contains(file))
-                        continue;
-                    long size = calculateDirectorySize(file, getBlockSize(file));
-                    if (size == 0L)
-                        continue;
-                    UUID uuid = null;
-                    try {
-                        uuid = UUID.fromString(file.getName());
-                    } catch (IllegalArgumentException ignored) {
-                    }
-                    publishProgress(new ServerLogsEntry(file.getName(), uuid, size));
-                }
-            }
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            StorageSettingsAdapter adapter = mAdapter.get();
-            if (adapter != null)
-                adapter.mAsyncTask = null;
-        }
-
-        private long getBlockSize(File file) {
-            if (mStatFs != null)
-                mStatFs.restat(file.getAbsolutePath());
-            else
-                mStatFs = new StatFs(file.getAbsolutePath());
-            if (Build.VERSION.SDK_INT >= 18)
-                return mStatFs.getBlockSizeLong();
-            else
-                return mStatFs.getBlockSize();
-        }
-
-        private long calculateDirectorySize(File file, long blockSize) {
-            File[] files = file.listFiles();
-            if (files == null)
-                return 0L;
-            long ret = blockSize;
-            for (File subfile : files) {
-                if (subfile.isDirectory())
-                    ret += calculateDirectorySize(subfile, blockSize);
-                else
-                    ret += (subfile.length() + blockSize - 1) / blockSize * blockSize;
-            }
-            return ret;
-        }
-
-        @Override
-        protected void onProgressUpdate(Object... values) {
-            StorageSettingsAdapter adapter = mAdapter.get();
-            if (adapter == null)
-                return;
-            for (Object value : values) {
-                if (value instanceof ServerLogsEntry) {
-                    adapter.addEntry((ServerLogsEntry) value);
-                } else if (value instanceof Long) {
-                    adapter.mConfigurationSize = (Long) value;
-                    adapter.notifyItemChanged(adapter.getItemCount() - 1);
-                }
-            }
-        }
-
-    }
-
-    private class RemoveDataTask extends AsyncTask<Void, Void, Void> {
-
-        private Context mContext;
-        private AlertDialog mAlertDialog;
-        private boolean mDeleteConfig;
-        private UUID mDeleteServerLogs;
-
-        public RemoveDataTask(Context context, boolean deleteConfig, UUID deleteOnlyServerLogs) {
-            mContext = context;
-            mDeleteConfig = deleteConfig;
-            mDeleteServerLogs = deleteOnlyServerLogs;
-            mAlertDialog = new AlertDialog.Builder(context)
-                    .setCancelable(false)
-                    .setView(R.layout.dialog_please_wait)
-                    .show();
-        }
-
-        @Override
-        protected Void doInBackground(Void... voids) {
-            Context ctx = mContext;
-            if (mDeleteConfig) {
+    private void removeData(Context context, boolean deleteConfig, UUID deleteOnlyServerLogs) {
+        AlertDialog alertDialog = new AlertDialog.Builder(context)
+                .setCancelable(false)
+                .setView(R.layout.dialog_please_wait)
+                .show();
+        ((IRCApplication) context.getApplicationContext()).getExecutorService().execute(() -> {
+            if (deleteConfig) {
                 ServerConnectionManager mgr = ServerConnectionManager.getInstance(null);
                 if (mgr != null)
                     mgr.disconnectAndRemoveAllConnections(true);
                 else
-                    new File(ctx.getFilesDir(),
+                    new File(context.getFilesDir(),
                             ServerConnectionManager.CONNECTED_SERVERS_FILE_PATH).delete();
-                ServerConfigManager.getInstance(ctx).deleteAllServers(true);
-                NotificationRuleManager.getUserRules(ctx).clear();
-                CommandAliasManager.getInstance(ctx).getUserAliases().clear();
-                SettingsHelper.getInstance(ctx).clear();
-                NotificationCountStorage.getInstance(ctx).close();
+                ServerConfigManager.getInstance(context).deleteAllServers(true);
+                NotificationRuleManager.getUserRules(context).clear();
+                CommandAliasManager.getInstance(context).getUserAliases().clear();
+                SettingsHelper.getInstance(context).clear();
+                NotificationCountStorage.getInstance(context).close();
 
-                File files = ctx.getFilesDir();
+                File files = context.getFilesDir();
                 for (File file : files.listFiles()) {
                     if (file.getName().equals("cache") || file.getName().equals("lib"))
                         continue;
                     deleteRecursive(file);
                 }
 
-                NotificationCountStorage.getInstance(ctx).open();
+                NotificationCountStorage.getInstance(context).open();
             }
-            if (mDeleteServerLogs != null) {
-                deleteChatLogDir(mDeleteServerLogs);
+            if (deleteOnlyServerLogs != null) {
+                deleteChatLogDir(context, deleteOnlyServerLogs);
             } else {
-                File[] logFiles = ServerConfigManager.getInstance(mContext).getChatLogDir().listFiles();
+                File[] logFiles = ServerConfigManager.getInstance(context).getChatLogDir().listFiles();
                 if (logFiles == null)
                     logFiles = new File[0];
                 for (File file : logFiles) {
                     try {
-                        deleteChatLogDir(UUID.fromString(file.getName()));
+                        deleteChatLogDir(context, UUID.fromString(file.getName()));
                     } catch (IllegalArgumentException ignored) {
                         deleteRecursive(file);
                     }
                 }
             }
+            new Handler(Looper.getMainLooper()).post(() -> {
+                alertDialog.dismiss();
+                refreshServerLogs(context);
+            });
+        });
+    }
 
-            return null;
+    private void deleteChatLogDir(Context context, UUID uuid) {
+        ServerConnectionManager connectionManager = ServerConnectionManager.getInstance(null);
+        if (connectionManager != null)
+            connectionManager.killDisconnectingConnection(uuid);
+        ServerConnectionInfo connection = connectionManager != null ? connectionManager.getConnection(uuid) : null;
+        SQLiteMessageStorageApi storageApi = null;
+        if (connection != null && connection.getApiInstance() != null &&
+                connection.getApiInstance() instanceof ServerConnectionApi &&
+                connection.getApiInstance().getMessageStorageApi() != null &&
+                connection.getApiInstance().getMessageStorageApi() instanceof SQLiteMessageStorageApi) {
+            storageApi = (SQLiteMessageStorageApi) connection.getApiInstance().getMessageStorageApi();
+            storageApi.close();
+            ((ServerConnectionApi) connection.getApiInstance()).getServerConnectionData().setMessageStorageApi(new StubMessageStorageApi());
         }
-
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            mAlertDialog.dismiss();
-            refreshServerLogs(mContext);
+        File file = ServerConfigManager.getInstance(context).getServerChatLogDir(uuid);
+        deleteRecursive(file);
+        if (storageApi != null) {
+            storageApi.open();
+            ((ServerConnectionApi) connection.getApiInstance()).getServerConnectionData().setMessageStorageApi(storageApi);
         }
+    }
 
-        private void deleteChatLogDir(UUID uuid) {
-            ServerConnectionManager connectionManager = ServerConnectionManager.getInstance(null);
-            if (connectionManager != null)
-                connectionManager.killDisconnectingConnection(uuid);
-            ServerConnectionInfo connection = connectionManager != null ? connectionManager.getConnection(uuid) : null;
-            SQLiteMessageStorageApi storageApi = null;
-            if (connection != null && connection.getApiInstance() != null &&
-                    connection.getApiInstance() instanceof ServerConnectionApi &&
-                    connection.getApiInstance().getMessageStorageApi() != null &&
-                    connection.getApiInstance().getMessageStorageApi() instanceof SQLiteMessageStorageApi) {
-                storageApi = (SQLiteMessageStorageApi) connection.getApiInstance().getMessageStorageApi();
-                storageApi.close();
-                ((ServerConnectionApi) connection.getApiInstance()).getServerConnectionData().setMessageStorageApi(new StubMessageStorageApi());
+    private void deleteRecursive(File file) {
+        if (file.isDirectory()) {
+            File[] files = file.listFiles();
+            if (files != null) {
+                for (File subfile : files)
+                    deleteRecursive(subfile);
             }
-            File file = ServerConfigManager.getInstance(mContext).getServerChatLogDir(uuid);
-            deleteRecursive(file);
-            if (storageApi != null) {
-                storageApi.open();
-                ((ServerConnectionApi) connection.getApiInstance()).getServerConnectionData().setMessageStorageApi(storageApi);
-            }
         }
-
-        private void deleteRecursive(File file) {
-            if (file.isDirectory()) {
-                File[] files = file.listFiles();
-                if (files != null) {
-                    for (File subfile : files)
-                        deleteRecursive(subfile);
-                }
-            }
-            file.delete();
-        }
-
+        file.delete();
     }
 
     private static String formatFileSize(long size) {

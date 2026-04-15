@@ -3,6 +3,7 @@ package io.mrarm.irc;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import android.text.style.ForegroundColorSpan;
 import android.view.LayoutInflater;
@@ -29,9 +30,9 @@ public class IgnoreListAdapter extends RecyclerView.Adapter<IgnoreListAdapter.It
 
     public IgnoreListAdapter(Context context, ServerConfigData server) {
         mTextColorSecondary = StyledAttributesHelper.getColor(context, android.R.attr.textColorSecondary, Color.BLACK);
-        mTextColorNick = context.getResources().getColor(R.color.ignoreEntryNick);
-        mTextColorUser = context.getResources().getColor(R.color.ignoreEntryUser);
-        mTextColorHost = context.getResources().getColor(R.color.ignoreEntryHost);
+        mTextColorNick = ContextCompat.getColor(context, R.color.ignoreEntryNick);
+        mTextColorUser = ContextCompat.getColor(context, R.color.ignoreEntryUser);
+        mTextColorHost = ContextCompat.getColor(context, R.color.ignoreEntryHost);
         mServer = server;
     }
 
@@ -70,8 +71,9 @@ public class IgnoreListAdapter extends RecyclerView.Adapter<IgnoreListAdapter.It
                     return true;
                 });
                 dialog.addItem(R.string.action_delete, R.drawable.ic_delete, (MenuBottomSheetDialog.Item item) -> {
-                    mServer.ignoreList.remove(getAdapterPosition());
-                    notifyItemRemoved(getAdapterPosition());
+                    int pos = getBindingAdapterPosition();
+                    mServer.ignoreList.remove(pos);
+                    notifyItemRemoved(pos);
                     try {
                         ServerConfigManager.getInstance(context).saveServer(mServer);
                     } catch (IOException e) {
@@ -88,7 +90,7 @@ public class IgnoreListAdapter extends RecyclerView.Adapter<IgnoreListAdapter.It
         private void startEdit() {
             Intent intent = new Intent(mText.getContext(), EditIgnoreEntryActivity.class);
             intent.putExtra(EditIgnoreEntryActivity.ARG_SERVER_UUID, mServer.uuid.toString());
-            intent.putExtra(EditIgnoreEntryActivity.ARG_ENTRY_INDEX, getAdapterPosition());
+            intent.putExtra(EditIgnoreEntryActivity.ARG_ENTRY_INDEX, getBindingAdapterPosition());
             mText.getContext().startActivity(intent);
         }
 

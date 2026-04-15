@@ -25,12 +25,16 @@ public class BackupCompleteActivity extends SetupBigHeaderActivity {
         findViewById(R.id.finish).setOnClickListener((View v) -> {
             setSetupFinished();
         });
+
+        getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                setSetupFinished();
+                setEnabled(false);
+                getOnBackPressedDispatcher().onBackPressed();
+            }
+        });
     }
 
-    @Override
-    public void onBackPressed() {
-        setSetupFinished();
-        super.onBackPressed();
-    }
 
 }

@@ -21,7 +21,7 @@ public abstract class SearchDialog extends AppCompatDialog implements ListSearch
     private ListSearchView mSearchView;
 
     public SearchDialog(@NonNull Context context) {
-        super(context, R.style.ThemeOverlay_AppCompat);
+        super(context, androidx.appcompat.R.style.ThemeOverlay_AppCompat);
 
         supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
 

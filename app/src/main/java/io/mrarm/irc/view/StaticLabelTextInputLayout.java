@@ -9,6 +9,8 @@ import android.util.AttributeSet;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
+import com.google.android.material.textfield.TextInputLayout;
+
 import io.mrarm.irc.R;
 import io.mrarm.irc.util.StyledAttributesHelper;
 
@@ -58,6 +60,10 @@ public class StaticLabelTextInputLayout extends TextInputLayout {
             return;
         }
         super.setHintEnabled(enabled);
+    }
+
+    public void setPasswordVisibilityToggleEnabled(boolean enabled) {
+        setEndIconMode(enabled ? END_ICON_PASSWORD_TOGGLE : END_ICON_NONE);
     }
 
     public void setForceShowHint(boolean enabled, CharSequence hint) {

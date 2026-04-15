@@ -9,20 +9,19 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.AsyncTask;
-import android.os.Build;
-import android.os.Environment;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.storage.StorageManager;
-import android.os.storage.StorageVolume;
-import android.preference.PreferenceManager;
+import androidx.preference.PreferenceManager;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.documentfile.provider.DocumentFile;
 import androidx.appcompat.app.AlertDialog;
 
+import android.os.Build;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.storage.StorageManager;
+import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
@@ -239,7 +238,7 @@ public class DCCManager implements DCCServerManager.UploadListener, DCCClient.Cl
             PortMapper.PortMappingResult mapping;
             if ((mapping = mUploadPortMappings.remove(uploadEntry)) != null) {
                 if (Thread.currentThread() == Looper.getMainLooper().getThread())
-                    AsyncTask.THREAD_POOL_EXECUTOR.execute(() -> deleteUploadPortMapping(mapping));
+                    ((IRCApplication) mContext.getApplicationContext()).getExecutorService().execute(() -> deleteUploadPortMapping(mapping));
                 else
                     deleteUploadPortMapping(mapping);
             }
@@ -418,7 +417,7 @@ public class DCCManager implements DCCServerManager.UploadListener, DCCClient.Cl
                 .getServerConnectionData();
 
         if (ServerConnectionManager.isWifiConnected(mContext)) {
-            AsyncTask.THREAD_POOL_EXECUTOR.execute(() -> {
+            ((IRCApplication) mContext.getApplicationContext()).getExecutorService().execute(() -> {
                 DCCServerManager.UploadEntry upload = null;
                 PortMapper.PortMappingResult mapping = null;
                 try {
@@ -690,7 +689,7 @@ public class DCCManager implements DCCServerManager.UploadListener, DCCClient.Cl
             if (!mPending || mCancelled)
                 return;
             mPending = false;
-            AsyncTask.THREAD_POOL_EXECUTOR.execute(() -> {
+            ((IRCApplication) mContext.getApplicationContext()).getExecutorService().execute(() -> {
                 try {
                     createClient();
                 } catch (CancelledException e) {

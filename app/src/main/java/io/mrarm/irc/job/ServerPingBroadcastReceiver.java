@@ -8,8 +8,11 @@ public class ServerPingBroadcastReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        final PendingResult pendingResult = goAsync();
         ServerPingScheduler.getInstance(context).onJobRan();
-        ServerPingTask.pingServers(context, () -> {});
+        ServerPingTask.pingServers(context, () -> {
+            pendingResult.finish();
+        });
     }
 
 }

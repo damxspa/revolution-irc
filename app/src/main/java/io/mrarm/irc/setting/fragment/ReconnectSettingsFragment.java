@@ -3,7 +3,7 @@ package io.mrarm.irc.setting.fragment;
 import android.content.ComponentName;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.preference.PreferenceManager;
+import androidx.preference.PreferenceManager;
 
 import io.mrarm.irc.IRCService;
 import io.mrarm.irc.R;
@@ -50,7 +50,7 @@ public class ReconnectSettingsFragment extends SettingsListFragment
                 .linkSetting(prefs, AppSettings.PREF_PING_WI_FI_ONLY)
                 .requires(pingSetting));
         a.add(new IntervalSetting(getString(R.string.pref_title_ping_interval))
-                .setMinDuration(15 * 60 * 1000)
+                .setMinDuration(15 * 1000)
                 .linkSetting(prefs, AppSettings.PREF_PING_INTERVAL)
                 .requires(pingSetting));
         CheckBoxSetting bootSetting = new CheckBoxSetting(

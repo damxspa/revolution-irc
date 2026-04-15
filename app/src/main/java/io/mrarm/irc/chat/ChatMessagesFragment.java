@@ -703,31 +703,29 @@ public class ChatMessagesFragment extends Fragment implements StatusMessageListe
 
         @Override
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-            switch (item.getItemId()) {
-                case R.id.action_copy:
-                    copySelectedMessages();
-                    mode.finish();
-                    return true;
-                case R.id.action_share:
-                    shareSelectedMessages();
-                    mode.finish();
-                    return true;
-                case R.id.action_delete: {
-                    int cnt = mAdapter.getSelectedItems().size();
-                    new AlertDialog.Builder(getContext())
-                            .setTitle(R.string.action_delete_confirm_title)
-                            .setMessage(getResources().getQuantityString(R.plurals.message_delete_confirm, cnt, cnt) + "\n\n" + getResources().getString(R.string.message_delete_confirm_note))
-                            .setPositiveButton(R.string.action_delete, (di, w) -> {
+            int itemId = item.getItemId();
+            if (itemId == R.id.action_copy) {
+                copySelectedMessages();
+                mode.finish();
+                return true;
+            } else if (itemId == R.id.action_share) {
+                shareSelectedMessages();
+                mode.finish();
+                return true;
+            } else if (itemId == R.id.action_delete) {
+                int cnt = mAdapter.getSelectedItems().size();
+                new AlertDialog.Builder(getContext())
+                        .setTitle(R.string.action_delete_confirm_title)
+                        .setMessage(getResources().getQuantityString(R.plurals.message_delete_confirm, cnt, cnt) + "\n\n" + getResources().getString(R.string.message_delete_confirm_note))
+                        .setPositiveButton(R.string.action_delete, (di, w) -> {
                                 deleteSelectedMessages();
                                 mode.finish();
                             })
                             .setNegativeButton(R.string.action_cancel, null)
                             .show();
                     return true;
-                }
-                default:
-                    return false;
             }
+            return false;
         }
 
         @Override

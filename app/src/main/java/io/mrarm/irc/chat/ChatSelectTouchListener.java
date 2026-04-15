@@ -527,27 +527,26 @@ public class ChatSelectTouchListener implements RecyclerView.OnItemTouchListener
 
         @Override
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-            switch (item.getItemId()) {
-                case R.id.action_copy:
-                    ClipboardManager clipboard = (ClipboardManager) mRecyclerView.getContext()
-                            .getSystemService(Context.CLIPBOARD_SERVICE);
-                    clipboard.setPrimaryClip(
-                            ClipData.newPlainText("IRC Messages", getSelectedText()));
-                    clearSelection();
-                    mode.finish();
-                    return true;
-                case R.id.action_share:
-                    Intent intent = new Intent(Intent.ACTION_SEND);
-                    intent.putExtra(Intent.EXTRA_TEXT, getSelectedText());
-                    intent.setType("text/plain");
-                    mRecyclerView.getContext().startActivity(Intent.createChooser(intent,
-                            mRecyclerView.getContext().getString(R.string.message_share_title)));
-                    clearSelection();
-                    mode.finish();
-                    return true;
-                default:
-                    return false;
+            int itemId = item.getItemId();
+            if (itemId == R.id.action_copy) {
+                ClipboardManager clipboard = (ClipboardManager) mRecyclerView.getContext()
+                        .getSystemService(Context.CLIPBOARD_SERVICE);
+                clipboard.setPrimaryClip(
+                        ClipData.newPlainText("IRC Messages", getSelectedText()));
+                clearSelection();
+                mode.finish();
+                return true;
+            } else if (itemId == R.id.action_share) {
+                Intent intent = new Intent(Intent.ACTION_SEND);
+                intent.putExtra(Intent.EXTRA_TEXT, getSelectedText());
+                intent.setType("text/plain");
+                mRecyclerView.getContext().startActivity(Intent.createChooser(intent,
+                        mRecyclerView.getContext().getString(R.string.message_share_title)));
+                clearSelection();
+                mode.finish();
+                return true;
             }
+            return false;
         }
 
         @Override

@@ -7,6 +7,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
+import androidx.appcompat.widget.Toolbar;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,6 +36,9 @@ public class EditIgnoreEntryActivity extends ThemedActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_ignore_entry);
+
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         UUID uuid = UUID.fromString(getIntent().getStringExtra(ARG_SERVER_UUID));
@@ -108,8 +112,8 @@ public class EditIgnoreEntryActivity extends ThemedActivity {
             }
 
             InputMethodManager manager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-            manager.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
-            finish();
+            manager.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), 0);
+            getOnBackPressedDispatcher().onBackPressed();
             return true;
         }
         return super.onOptionsItemSelected(item);

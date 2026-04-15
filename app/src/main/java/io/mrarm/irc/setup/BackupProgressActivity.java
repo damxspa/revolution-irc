@@ -3,20 +3,17 @@ package io.mrarm.irc.setup;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.webkit.MimeTypeMap;
 
 import net.lingala.zip4j.exception.ZipException;
-import net.lingala.zip4j.exception.ZipExceptionConstants;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -32,6 +29,10 @@ public class BackupProgressActivity extends SetupProgressActivity {
     public static final String ARG_USER_PASSWORD = "password";
     public static final String ARG_RESTORE_MODE = "restore_mode";
 
+    public static final int RESTORE_RESULT_OK = 0;
+    public static final int RESTORE_RESULT_ERROR = 1;
+    public static final int RESTORE_RESULT_INVALID_PASSWORD = 2;
+
     private boolean mRestoreMode = false;
     private File mBackupFile;
 
@@ -44,10 +45,9 @@ public class BackupProgressActivity extends SetupProgressActivity {
             setTitle(R.string.title_activity_backup_progress_restore);
             askOpenBackup();
         } else {
-            BackupRequest request = new BackupRequest();
-            request.password = getIntent().getStringExtra(ARG_USER_PASSWORD);
+            String password = getIntent().getStringExtra(ARG_USER_PASSWORD);
             acquireExitLock();
-            new BackupTask(this).execute(request);
+            runBackupTask(password);
         }
     }
 
@@ -88,11 +88,11 @@ public class BackupProgressActivity extends SetupProgressActivity {
     }
 
     public void onRestoreDone(Integer result) {
-        if (result == RestoreTask.RESULT_OK) {
+        if (result == RESTORE_RESULT_OK) {
             setDone(R.string.backup_restored);
-        } else if (result == RestoreTask.RESULT_ERROR) {
+        } else if (result == RESTORE_RESULT_ERROR) {
             setDone(R.string.error_generic);
-        } else if (result == RestoreTask.RESULT_INVALID_PASSWORD) {
+        } else if (result == RESTORE_RESULT_INVALID_PASSWORD) {
             Intent intent = new Intent(BackupProgressActivity.this, BackupPasswordActivity.class);
             intent.putExtra(BackupPasswordActivity.ARG_RESTORE_MODE, true);
             intent.putExtra(BackupPasswordActivity.ARG_WAS_INVALID, true);
@@ -123,10 +123,7 @@ public class BackupProgressActivity extends SetupProgressActivity {
 
     public void startRestoreTask(String password) {
         acquireExitLock();
-        RestoreRequest request = new RestoreRequest();
-        request.file = mBackupFile;
-        request.password = password;
-        new RestoreTask(this).execute(request);
+        runRestoreTask(mBackupFile, password);
     }
 
     public void cancel() {
@@ -149,12 +146,12 @@ public class BackupProgressActivity extends SetupProgressActivity {
                         mBackupFile.deleteOnExit();
                         FileInputStream fis = new FileInputStream(desc.getFileDescriptor());
                         FileOutputStream fos = new FileOutputStream(mBackupFile);
-                        new CopyFileTask(this).execute(new CopyRequest(fis, fos, desc));
+                        runCopyFileTask(fis, fos, desc);
                     } else {
                         ParcelFileDescriptor desc = getContentResolver().openFileDescriptor(uri, "w");
                         FileOutputStream fos = new FileOutputStream(desc.getFileDescriptor());
                         FileInputStream fis = new FileInputStream(mBackupFile);
-                        new CopyFileTask(this).execute(new CopyRequest(fis, fos, desc));
+                        runCopyFileTask(fis, fos, desc);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -172,115 +169,54 @@ public class BackupProgressActivity extends SetupProgressActivity {
         }
     }
 
-    private static class BackupRequest {
-        public String password;
-    }
-
-    private static class BackupTask extends AsyncTask<BackupRequest, Void, File> {
-        private WeakReference<BackupProgressActivity> mActivity;
-        private Context mContext;
-
-        public BackupTask(BackupProgressActivity activity) {
-            mActivity = new WeakReference<>(activity);
-            mContext = activity.getApplicationContext();
-        }
-
-        @Override
-        protected File doInBackground(BackupRequest... backupRequests) {
-            BackupRequest request = backupRequests[0];
-            File backupFile = new File(mContext.getCacheDir(), "temp-backup.zip");
+    private void runBackupTask(String password) {
+        new Thread(() -> {
+            Context context = getApplicationContext();
+            File backupFile = new File(context.getCacheDir(), "temp-backup.zip");
             if (backupFile.exists())
                 backupFile.delete();
-            backupFile.deleteOnExit(); // in case something fails
+            backupFile.deleteOnExit();
+            File result;
             try {
-                BackupManager.createBackup(mContext, backupFile, request.password);
+                BackupManager.createBackup(context, backupFile, password);
+                result = backupFile;
             } catch (IOException e) {
                 e.printStackTrace();
                 backupFile.delete();
-                return null;
+                result = null;
             }
-            return backupFile;
-        }
-
-        @Override
-        protected void onPostExecute(File file) {
-            BackupProgressActivity activity = mActivity.get();
-            if (activity != null)
-                activity.onBackupDone(file);
-        }
+            File finalResult = result;
+            runOnUiThread(() -> onBackupDone(finalResult));
+        }).start();
     }
 
-
-    private static class RestoreRequest {
-        public File file;
-        public boolean deleteFile = true;
-        public String password;
-    }
-
-    private static class RestoreTask extends AsyncTask<RestoreRequest, Void, Integer> {
-        public static final int RESULT_OK = 0;
-        public static final int RESULT_ERROR = 1;
-        public static final int RESULT_INVALID_PASSWORD = 2;
-
-        private WeakReference<BackupProgressActivity> mActivity;
-        private Context mContext;
-
-        public RestoreTask(BackupProgressActivity activity) {
-            mActivity = new WeakReference<>(activity);
-            mContext = mActivity.get().getApplicationContext();
-        }
-
-        @Override
-        protected Integer doInBackground(RestoreRequest... restoreRequests) {
-            RestoreRequest request = restoreRequests[0];
+    private void runRestoreTask(File file, String password) {
+        new Thread(() -> {
+            Context context = getApplicationContext();
+            int result;
             try {
-                BackupManager.restoreBackup(mContext, request.file, request.password);
-                if (request.deleteFile)
-                    request.file.delete();
-                return RESULT_OK;
+                BackupManager.restoreBackup(context, file, password);
+                file.delete();
+                result = RESTORE_RESULT_OK;
             } catch (IOException e) {
                 e.printStackTrace();
-                if (e.getCause() != null && e.getCause() instanceof ZipException &&
-                        ((ZipException) e.getCause()).getCode() == ZipExceptionConstants.WRONG_PASSWORD)
-                    return RESULT_INVALID_PASSWORD;
-                if (request.deleteFile)
-                    request.file.delete();
-                return RESULT_ERROR;
+                if (e.getCause() instanceof ZipException &&
+                        ((ZipException) e.getCause()).getType() == ZipException.Type.WRONG_PASSWORD) {
+                    result = RESTORE_RESULT_INVALID_PASSWORD;
+                } else {
+                    file.delete();
+                    result = RESTORE_RESULT_ERROR;
+                }
             }
-        }
-
-        @Override
-        protected void onPostExecute(Integer result) {
-            BackupProgressActivity activity = mActivity.get();
-            if (activity != null)
-                activity.onRestoreDone(result);
-        }
+            int finalResult = result;
+            runOnUiThread(() -> onRestoreDone(finalResult));
+        }).start();
     }
 
-
-    private static class CopyRequest {
-        public FileInputStream fis;
-        public FileOutputStream fos;
-        public ParcelFileDescriptor fd;
-        public CopyRequest(FileInputStream fis, FileOutputStream fos, ParcelFileDescriptor fd) {
-            this.fis = fis;
-            this.fos = fos;
-            this.fd = fd;
-        }
-    }
-
-    private static class CopyFileTask extends AsyncTask<CopyRequest, Void, Boolean> {
-        private WeakReference<BackupProgressActivity> mActivity;
-
-        public CopyFileTask(BackupProgressActivity activity) {
-            mActivity = new WeakReference<>(activity);
-        }
-
-        @Override
-        protected Boolean doInBackground(CopyRequest... args) {
+    private void runCopyFileTask(FileInputStream fis, FileOutputStream fos, ParcelFileDescriptor fd) {
+        new Thread(() -> {
+            boolean success = true;
             try {
-                FileInputStream fis = args[0].fis;
-                FileOutputStream fos = args[0].fos;
                 byte[] buf = new byte[1024 * 16];
                 int c;
                 while ((c = fis.read(buf, 0, buf.length)) > 0) {
@@ -290,23 +226,17 @@ public class BackupProgressActivity extends SetupProgressActivity {
                 fos.close();
             } catch (Exception e) {
                 e.printStackTrace();
-                return false;
+                success = false;
             } finally {
                 try {
-                    if (args[0].fd != null)
-                        args[0].fd.close();
+                    if (fd != null)
+                        fd.close();
                 } catch (Exception ignored) {
                 }
             }
-            return true;
-        }
-
-        @Override
-        protected void onPostExecute(Boolean success) {
-            BackupProgressActivity activity = mActivity.get();
-            if (activity != null)
-                activity.onBackupCopyDone(success);
-        }
+            boolean finalSuccess = success;
+            runOnUiThread(() -> onBackupCopyDone(finalSuccess));
+        }).start();
     }
 
 }

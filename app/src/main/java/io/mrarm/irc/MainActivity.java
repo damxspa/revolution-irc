@@ -7,8 +7,14 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.PowerManager;
 import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
+import android.Manifest;
+import android.provider.Settings;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.google.android.material.appbar.AppBarLayout;
@@ -72,7 +78,6 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
     private LockableDrawerLayout mDrawerLayout;
     private DrawerHelper mDrawerHelper;
     private Toolbar mToolbar;
-    private View mFakeToolbar;
     private boolean mBackReturnToServerList;
     private Dialog mCurrentDialog;
     private ChannelInfoAdapter mChannelInfoAdapter;
@@ -113,7 +118,25 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mFakeToolbar = findViewById(R.id.fake_toolbar);
+        getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (mBackReturnToServerList) {
+                    openManageServers();
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[] { Manifest.permission.POST_NOTIFICATIONS }, 103);
+            }
+        }
+
+        // Eliminada la solicitud de optimización de batería por ser molesta para el usuario
 
         mDrawerLayout = findViewById(R.id.drawer_layout);
 
@@ -182,20 +205,18 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        StyledAttributesHelper ta = StyledAttributesHelper.obtainStyledAttributes(this,
-                new int[] { R.attr.actionBarSize });
-        ViewGroup.LayoutParams params = mFakeToolbar.getLayoutParams();
-        params.height = ta.getDimensionPixelSize(R.attr.actionBarSize, 0);
-        mFakeToolbar.setLayoutParams(params);
-        ta.recycle();
         if (mToolbar != null) {
             ViewGroup group = (ViewGroup) mToolbar.getParent();
             int i = group.indexOfChild(mToolbar);
             group.removeViewAt(i);
             Toolbar replacement = new Toolbar(group.getContext());
             replacement.setPopupTheme(mToolbar.getPopupTheme());
+            StyledAttributesHelper ta = StyledAttributesHelper.obtainStyledAttributes(this,
+                    new int[] { R.attr.actionBarSize });
+            int height = ta.getDimensionPixelSize(R.attr.actionBarSize, 0);
+            ta.recycle();
             AppBarLayout.LayoutParams toolbarParams = new AppBarLayout.LayoutParams(
-                    AppBarLayout.LayoutParams.MATCH_PARENT, params.height);
+                    AppBarLayout.LayoutParams.MATCH_PARENT, height);
             replacement.setLayoutParams(toolbarParams);
             for (int j = 0; j < mToolbar.getChildCount(); j++) {
                 View v = mToolbar.getChildAt(j);
@@ -374,14 +395,6 @@ public class MainActivity extends ThemedActivity implements IRCApplication.ExitC
         }
     }
 
-    @Override
-    public void onBackPressed() {
-        if (mBackReturnToServerList) {
-            openManageServers();
-            return;
-        }
-        super.onBackPressed();
-    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

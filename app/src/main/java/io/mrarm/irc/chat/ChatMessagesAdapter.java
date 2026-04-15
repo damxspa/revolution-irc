@@ -63,9 +63,9 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                                List<MessageId> messageIds) {
         mFragment = fragment;
         StyledAttributesHelper ta = StyledAttributesHelper.obtainStyledAttributes(fragment.getContext(),
-                new int[] { R.attr.selectableItemBackground, R.attr.colorControlHighlight });
-        // mItemBackground = ta.getDrawable(R.attr.selectableItemBackground);
-        int color = ta.getColor(R.attr.colorControlHighlight, 0);
+                new int[] { androidx.appcompat.R.attr.selectableItemBackground, androidx.appcompat.R.attr.colorControlHighlight });
+        // mItemBackground = ta.getDrawable(androidx.appcompat.R.attr.selectableItemBackground);
+        int color = ta.getColor(androidx.appcompat.R.attr.colorControlHighlight, 0);
         //color = ColorUtils.setAlphaComponent(color, Color.alpha(color) / 2);
         mSelectedItemBackground = new ColorDrawable(color);
         ta.recycle();
@@ -437,7 +437,7 @@ public class ChatMessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 mText.setText(AlignToPointSpan.apply(mText, MessageBuilder.getInstance(mText.getContext()).buildMessage(message)));
 
             if (mSelectListener != null)
-                mSelectListener.applySelectionTo(itemView, getAdapterPosition());
+                mSelectListener.applySelectionTo(itemView, getBindingAdapterPosition());
         }
 
     }
