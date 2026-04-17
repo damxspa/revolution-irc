@@ -1,13 +1,17 @@
 Revolution IRC Next
 ==============
+Some errors that occurred when creating a new account have been partially resolved.
+The remaining errors will be resolved in future versions.
+
 In this "Release" version, the Wakelock and freezes issues in recent Android versions has been resolved
 
 When you launch the application for the first time, a message will appear asking you to allow it to run in the background.
 
 This depends on the specific Android brand and version. But by default, this should be the configuration.
-1. Tap on Allow/Configure
-2. Tap on "Allow in Background"
-3. Select "No Restrictions"
+
+    Tap on Allow/Configure
+    Tap on "Allow in Background"
+    Select "No Restrictions"
 
 This application is NOT signed
 
