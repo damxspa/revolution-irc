@@ -1,7 +1,5 @@
 Revolution IRC Next
 ==============
-Some errors that occurred when creating a new account have been partially resolved.
-The remaining errors will be resolved in future versions.
 
 In this "Release" version, the Wakelock and freezes issues in recent Android versions has been resolved
 
