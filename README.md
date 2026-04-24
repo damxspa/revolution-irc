@@ -1,20 +1,6 @@
 Revolution IRC Next
 ==============
-Some errors that occurred when creating a new account have been partially resolved.
-The remaining errors will be resolved in future versions.
-
-In this "Release" version, the Wakelock and freezes issues in recent Android versions has been resolved
-
-When you launch the application for the first time, a message will appear asking you to allow it to run in the background.
-
-This depends on the specific Android brand and version. But by default, this should be the configuration.
-
-    Tap on Allow/Configure
-    Tap on "Allow in Background"
-    Select "No Restrictions"
-
-This application is NOT signed
-
-To confirm that the application is working perfectly in the background, you should close the application (it is recommended to force it to close). If no message appears asking to optimize, it means that it is working perfectly.
-
-You can download in "Releases"
+There will be no further updates; DamXspa recommend that you download the repository before 30 April 2026.
+It is compatible with Gradle versions 9.4.x and above.
+Use Android Studio to build the repository
+The latest version is 0.5.7
