@@ -1,6 +1,6 @@
 Revolution IRC Next
 ==============
-TXT export in testing
+TXT export in testing and 
 Split-screen performance is currently being tested
 
 -- Previous in 0.5.7 --<br>
