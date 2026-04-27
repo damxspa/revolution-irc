@@ -1,7 +1,6 @@
 Revolution IRC Next
 ==============
-TXT export in testing and 
-Split-screen performance is currently being tested
+TXT export and Split-screen performance is currently being tested
 
 -- Previous in 0.5.7 --<br>
 Some errors that occurred when creating a new account have been partially resolved.
