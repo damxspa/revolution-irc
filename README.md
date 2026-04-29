@@ -3,8 +3,8 @@ Revolution IRC Next
 Languages: English, Spanish, Portuguese, French, German, Chinese (Traditional - Simplified), Korean, Japanese
 The app will detect the language of your device, but you can also select a different language from options
 
-Added Windows-1252 codification support
-Fixed TXT Logs
+Added Windows-1252 codification support<br>
+Fixed TXT Logs<br>
 Testing: Check whether the user to sent a private message has left or rejoined the channel/server
 
 In this "Release" version, the Wakelock and freezes issues in recent Android versions has been resolved
