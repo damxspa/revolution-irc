@@ -1,6 +1,6 @@
 Revolution IRC Next
 ==============
-Languages: English, Spanish, Portuguese, French, German, Chinese (Traditional - Simplified), Korean, Japanese
+Languages: English, Spanish, Portuguese, French, German, Chinese (Traditional - Simplified), Korean, Japanese<br>
 The app will detect the language of your device, but you can also select a different language from options
 
 Added Windows-1252 codification support<br>
