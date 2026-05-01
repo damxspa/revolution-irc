@@ -1,13 +1,10 @@
 Revolution IRC Next
 ==============
-Fixed language selector
-
-Fixed Problems with the chat/private messages window
-
-The function checks whether the user has left the channel or the server has been removed
+Fixed language selector<br>
+Fixed Problems with the chat/private messages window<br>
+The function checks whether the user has left the channel or the server has been removed<br>
 
 Languages: English, Spanish, Portuguese, French, German, Chinese (Traditional - Simplified), Korean, Japanese, Polish
-
 The app will detect the language of your device, but you can also select a different language from options
 
 Added Windows-1252 codification support
