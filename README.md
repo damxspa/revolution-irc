@@ -1,7 +1,9 @@
 Revolution IRC Next
 ==============
 Fixed language selector
+
 Fixed Problems with the chat/private messages window
+
 The function checks whether the user has left the channel or the server has been removed
 
 Languages: English, Spanish, Portuguese, French, German, Chinese (Traditional - Simplified), Korean, Japanese, Polish
