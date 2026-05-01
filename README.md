@@ -7,7 +7,7 @@ The function checks whether the user has left the channel or the server has been
 Languages: English, Spanish, Portuguese, French, German, Chinese (Traditional - Simplified), Korean, Japanese, Polish<br>
 The app will detect the language of your device, but you can also select a different language from options
 
-Added Windows-1252 codification support
+Added Windows-1252 codification support<br>
 Fixed TXT Logs
 
 In this "Release" version, the Wakelock and freezes issues in recent Android versions has been resolved
