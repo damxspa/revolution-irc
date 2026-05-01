@@ -25,6 +25,3 @@ This application is NOT signed
 To confirm that the application is working perfectly in the background, you should close the application (it is recommended to force it to close). If no message appears asking to optimize, it means that it is working perfectly.
 
 You can download in "Releases"
-
-Download soon
-https://github.com/damxspa/revolution-irc/releases
