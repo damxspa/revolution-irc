@@ -1,13 +1,26 @@
 Revolution IRC Next
 ==============
+Change name to "RevIRC" - ID Change to "com.damxspa.irc"
+UI Change Theme remove temporary
+Testing: Delete data and cache direct since "App Information" without enter in the APP
+Testing: Heartbeat and Reconnect exclusive WiFi option remove
+Testing: Direct export of data from each account in SQL format
+
+Languages: English, Spanish, Portuguese, French, German, Chinese (Traditional - Simplified), Korean, Japanese, Polish
+The app will detect the language of your device, but you can also select a different language from options
+
+Added Windows-1252 codification support
+Fixed TXT Logs
+
 In this "Release" version, the Wakelock and freezes issues in recent Android versions has been resolved
 
 When you launch the application for the first time, a message will appear asking you to allow it to run in the background.
 
 This depends on the specific Android brand and version. But by default, this should be the configuration.
-1. Tap on Allow/Configure
-2. Tap on "Allow in Background"
-3. Select "No Restrictions"
+
+    Tap on Allow/Configure
+    Tap on "Allow in Background"
+    Select "No Restrictions"
 
 This application is NOT signed
 
